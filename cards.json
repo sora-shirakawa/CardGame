@@ -1,0 +1,291 @@
+{
+  "version": "card-defs-v1",
+  "notes": [
+    "召喚酔いはカードテキストに記載しない。召喚時に状態(summoningSickness)を付与し、次の自分ターン開始で解除する。",
+    "効果テキスト/フレーバーは後で差し替え予定。"
+  ],
+  "cards": [
+    {
+      "id": "H_001",
+      "name": "白河の先導者",
+      "type": "hero",
+      "lp": 5,
+      "rarity": "R",
+      "tags": [
+        "英雄"
+      ],
+      "text": "前衛：味方前衛モンスター1体の攻撃力+300（このターン）。後衛：1枚ドロー。",
+      "frontEffect": {
+        "timing": [
+          "main",
+          "battle"
+        ],
+        "limit": "oncePerTurn",
+        "target": "allyMonsterFrontOne",
+        "action": "buff",
+        "value": {
+          "atk": 300
+        },
+        "duration": "turn"
+      },
+      "backEffect": {
+        "timing": [
+          "main"
+        ],
+        "limit": "oncePerTurn",
+        "target": "self",
+        "action": "draw",
+        "value": 1
+      }
+    },
+    {
+      "id": "M_001",
+      "name": "星天の剣士",
+      "type": "monster",
+      "subType": "S",
+      "cost": 2,
+      "rarity": "N",
+      "atk": 1400,
+      "hp": 1200,
+      "tags": [
+        "星天",
+        "剣士"
+      ],
+      "text": "（効果なし）"
+    },
+    {
+      "id": "M_002",
+      "name": "星天の盾兵",
+      "type": "monster",
+      "subType": "S",
+      "cost": 2,
+      "rarity": "N",
+      "atk": 900,
+      "hp": 1700,
+      "tags": [
+        "星天",
+        "兵士"
+      ],
+      "text": "（効果なし）"
+    },
+    {
+      "id": "M_003",
+      "name": "星天の斥候",
+      "type": "monster",
+      "subType": "E",
+      "cost": 1,
+      "rarity": "R",
+      "atk": 700,
+      "hp": 700,
+      "tags": [
+        "星天",
+        "斥候"
+      ],
+      "text": "召喚成功時：1枚ドロー。",
+      "effect": {
+        "timing": [
+          "main"
+        ],
+        "trigger": "onSummon",
+        "target": "self",
+        "action": "draw",
+        "value": 1
+      }
+    },
+    {
+      "id": "M_004",
+      "name": "星天の霹靂",
+      "type": "monster",
+      "subType": "E",
+      "cost": 4,
+      "rarity": "SR",
+      "atk": 1900,
+      "hp": 1200,
+      "tags": [
+        "星天",
+        "雷"
+      ],
+      "text": "攻撃宣言時：相手モンスター1体に300ダメージ。",
+      "effect": {
+        "timing": [
+          "battle"
+        ],
+        "trigger": "onAttackDeclare",
+        "target": "enemyMonsterOne",
+        "action": "damage",
+        "value": 300
+      }
+    },
+    {
+      "id": "M_005",
+      "name": "星天の守護獣",
+      "type": "monster",
+      "subType": "E",
+      "cost": 3,
+      "rarity": "R",
+      "atk": 1200,
+      "hp": 1700,
+      "tags": [
+        "星天",
+        "獣"
+      ],
+      "text": "味方ヒーローが攻撃対象になった時：このカードを代わりに攻撃対象にできる。",
+      "effect": {
+        "timing": [
+          "battle"
+        ],
+        "trigger": "onHeroTargeted",
+        "target": "self",
+        "action": "redirectAttackToSelf",
+        "value": 1
+      }
+    },
+    {
+      "id": "SP_101",
+      "name": "星天の加護",
+      "type": "magic",
+      "cost": 2,
+      "rarity": "N",
+      "tags": [
+        "星天"
+      ],
+      "text": "味方モンスター1体の攻撃力+500（このターン）。",
+      "effect": {
+        "timing": [
+          "main"
+        ],
+        "trigger": "onPlay",
+        "target": "allyMonsterOne",
+        "action": "buff",
+        "value": {
+          "atk": 500
+        },
+        "duration": "turn"
+      }
+    },
+    {
+      "id": "SP_102",
+      "name": "星天の結束",
+      "type": "magic",
+      "cost": 3,
+      "rarity": "R",
+      "tags": [
+        "星天"
+      ],
+      "text": "味方モンスター全体の攻撃力+200（このターン）。",
+      "effect": {
+        "timing": [
+          "main"
+        ],
+        "trigger": "onPlay",
+        "target": "allyMonstersAll",
+        "action": "buff",
+        "value": {
+          "atk": 200
+        },
+        "duration": "turn"
+      }
+    },
+    {
+      "id": "SP_103",
+      "name": "星天の浄化",
+      "type": "magic",
+      "cost": 2,
+      "rarity": "R",
+      "tags": [
+        "星天"
+      ],
+      "text": "相手モンスター1体に600ダメージ。",
+      "effect": {
+        "timing": [
+          "main",
+          "battle"
+        ],
+        "trigger": "onPlay",
+        "target": "enemyMonsterOne",
+        "action": "damage",
+        "value": 600
+      }
+    },
+    {
+      "id": "SU_201",
+      "name": "星天の結界",
+      "type": "support",
+      "cost": 2,
+      "lp": 1,
+      "rarity": "R",
+      "tags": [
+        "星天",
+        "結界"
+      ],
+      "text": "味方前衛ヒーローへの戦闘ダメージを200軽減する。",
+      "effect": {
+        "passive": true,
+        "scope": "allyHeroFront",
+        "action": "reduceBattleDamage",
+        "value": 200
+      }
+    },
+    {
+      "id": "SU_202",
+      "name": "補給拠点",
+      "type": "support",
+      "cost": 1,
+      "lp": 1,
+      "rarity": "N",
+      "tags": [
+        "拠点"
+      ],
+      "text": "自分のメイン開始時：1枚ドロー（LPがある限り）。",
+      "effect": {
+        "passive": true,
+        "timing": [
+          "mainStart"
+        ],
+        "trigger": "onPhaseStart",
+        "target": "self",
+        "action": "draw",
+        "value": 1
+      }
+    },
+    {
+      "id": "IN_301",
+      "name": "星天の審判",
+      "type": "instance",
+      "rarity": "SR",
+      "tags": [
+        "星天"
+      ],
+      "text": "相手モンスターを全て破壊する。",
+      "effect": {
+        "timing": [
+          "any"
+        ],
+        "trigger": "onPlay",
+        "target": "enemyMonstersAll",
+        "action": "destroy",
+        "value": 999
+      }
+    },
+    {
+      "id": "IN_302",
+      "name": "逆転の護符",
+      "type": "instance",
+      "rarity": "R",
+      "tags": [
+        "護符"
+      ],
+      "text": "このターン、味方ヒーローが受けるダメージを0にする。",
+      "effect": {
+        "timing": [
+          "any"
+        ],
+        "trigger": "onPlay",
+        "target": "allyHeroesAll",
+        "action": "preventDamage",
+        "value": 1,
+        "duration": "turn"
+      }
+    }
+  ]
+}

@@ -1,0 +1,871 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>Card Game Prototype — v21</title>
+<style>
+  :root{
+    --bg:#0b1020;
+    --panel:rgba(255,255,255,.06);
+    --line:rgba(255,255,255,.12);
+    --text:rgba(255,255,255,.92);
+    --muted:rgba(255,255,255,.70);
+    --good:#14532d;
+    --warn:#7c2d12;
+    --bad:#7f1d1d;
+    --shadow:0 10px 30px rgba(0,0,0,.35);
+    --radius:16px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:radial-gradient(1200px 600px at 40% -10%, rgba(125,211,252,.16), transparent),
+                 radial-gradient(900px 600px at 90% 10%, rgba(250,204,21,.10), transparent),
+                 var(--bg);
+       color:var(--text); font-family: system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans JP", sans-serif;}
+  header{position:sticky;top:0;z-index:50;backdrop-filter: blur(10px);
+          background:linear-gradient(to bottom, rgba(11,16,32,.92), rgba(11,16,32,.68));
+          border-bottom:1px solid var(--line);}
+  .bar{display:flex;gap:10px;align-items:center;justify-content:space-between; padding:10px 12px; flex-wrap:wrap}
+  .title{font-weight:900}
+  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  button{appearance:none;border:1px solid var(--line);background:var(--panel);color:var(--text);
+          padding:9px 12px;border-radius:12px;font-weight:800;cursor:pointer}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  button.primary{border-color:rgba(125,211,252,.35); box-shadow:0 0 0 1px rgba(125,211,252,.06) inset}
+  .chip{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;background:rgba(255,255,255,.10);border:1px solid var(--line);font-size:12px}
+  .wrap{display:grid;grid-template-columns: 1.55fr .45fr; gap:12px; padding:12px; max-width:1100px; margin:0 auto}
+  @media (max-width: 980px){ .wrap{grid-template-columns:1fr} }
+  .panel{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); box-shadow: var(--shadow);}
+  .panel h2{margin:0;padding:12px 12px 0 12px;font-size:14px;opacity:.95}
+  .panel .inner{padding:12px}
+  .zoneGrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media (max-width: 720px){ .zoneGrid{grid-template-columns:1fr} }
+  .cards{display:flex;gap:10px;flex-wrap:wrap}
+  .card{width:clamp(140px, 42vw, 170px); background:linear-gradient(to bottom, rgba(255,255,255,.08), rgba(255,255,255,.04));
+         border:1px solid var(--line); border-radius:14px; padding:10px; cursor:pointer; position:relative}
+  .card .name{font-weight:900;font-size:13px;line-height:1.2}
+  .meta{margin-top:6px;font-size:12px;color:var(--muted);line-height:1.3}
+  .badges{position:absolute;top:8px;right:8px;display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+  .badge{font-size:11px;padding:3px 8px;border-radius:999px;background:rgba(255,255,255,.10);border:1px solid var(--line)}
+  .badge.warn{background:rgba(124,45,18,.35);border-color:rgba(124,45,18,.6)}
+  .badge.info{background:rgba(29,78,216,.20);border-color:rgba(29,78,216,.45)}
+  .slotRow{display:flex;gap:10px;flex-wrap:wrap}
+  .slotRow.nowrap{flex-wrap:nowrap;overflow-x:auto;padding-bottom:6px}
+  .slotRow.nowrap::-webkit-scrollbar{height:8px}
+  .slotRow.nowrap::-webkit-scrollbar-thumb{background:rgba(255,255,255,.18);border-radius:999px}
+  .slotRow.nowrap::-webkit-scrollbar-track{background:rgba(255,255,255,.06);border-radius:999px}
+  .slot{width:170px; height:92px; border-radius:14px; border:1px dashed rgba(255,255,255,.18);
+         display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.55); background:rgba(255,255,255,.03)}
+  .slot.fill{border-style:solid;background:rgba(255,255,255,.05)}
+  .hr{height:1px;background:var(--line);margin:10px 0}
+  /* modal */
+  #modalBackdrop{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;z-index:100}
+  #modal{width:min(860px, 94vw); max-height: 90vh; overflow:auto; background:rgba(12,18,36,.92); border:1px solid var(--line);
+          border-radius:18px; box-shadow:0 20px 60px rgba(0,0,0,.6)}
+  .modalHead{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px;border-bottom:1px solid var(--line)}
+  .modalHead .h{font-weight:900}
+  .modalBody{padding:12px}
+  /* debug */
+  #debugLog{position:fixed;left:8px;right:8px;bottom:8px;z-index:200;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.15);border-radius:14px;
+            padding:8px 10px;color:#fff;font-size:12px;max-height:26vh;overflow:auto}
+  #jsStatus{position:sticky;top:0;z-index:9999;background:var(--bad);color:#fff;padding:10px 12px;font-weight:900;font-size:13px;border-bottom:1px solid rgba(255,255,255,.12)}
+  .small{font-size:12px;color:var(--muted)}
+
+  @media (max-width: 520px){
+    .bar{flex-direction:column;align-items:stretch}
+    .bar .row{justify-content:flex-start}
+    .bar button{flex:1}
+  }
+
+
+  .selectable{outline:2px solid rgba(120,200,255,.65); box-shadow:0 0 0 4px rgba(60,120,200,.18) inset;}
+  .targetBar{
+    position:sticky; top:0; z-index:50;
+    margin:8px 12px 0; padding:10px 12px;
+    border-radius:14px;
+    background:rgba(20,40,70,.92);
+    border:1px solid rgba(255,255,255,.14);
+    display:flex; gap:10px; align-items:center; justify-content:space-between;
+  }
+  .targetBar .msg{font-weight:900}
+  .targetBar .sub{opacity:.85; font-size:12px}
+
+</style>
+</head>
+<body>
+<div id="jsStatus">JS未起動（v18）</div>
+<noscript><div style="background:#b45309;color:#fff;padding:10px 12px;font-weight:800">JavaScriptが無効です（noscript）</div></noscript>
+
+<script>
+(() => {
+  "use strict";
+
+  const VERSION = "v21";
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (m) => ({ "&":"&amp;","<":"&lt;",">":"&gt;", "\"":"&quot;","'":"&#39;" }[m]));
+  const now = () => new Date().toLocaleTimeString();
+  const logEl = $("log");
+
+  function log(msg){
+    if(!logEl) return;
+    logEl.textContent = (logEl.textContent + msg + "\n").slice(-8000);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  // Debug overlay (optional)
+  const dbgEl = $("debugLines");
+  function dbg(msg){
+    if(!dbgEl) return;
+    dbgEl.textContent += `[${now()}] ${msg}\n`;
+    dbgEl.scrollTop = dbgEl.scrollHeight;
+  }
+
+  window.addEventListener("error", (e)=>{ dbg("JS Error: " + (e.message || "unknown")); if(e.error && e.error.stack) dbg(e.error.stack); });
+  window.addEventListener("unhandledrejection", (e)=>{ dbg("Promise Rejection: " + (e.reason && (e.reason.message || e.reason) || "unknown")); });
+
+  // ---------- State ----------
+  const Z = {
+    MON: "monster",
+    HERO: "hero",
+    INST: "instance",
+    SUP: "support",
+    HAND: "hand",
+    MANA: "mana",
+    GRAVE: "grave",
+    BANISH: "banish",
+  };
+
+  const PHASES = ["DRAW","MAIN","BATTLE","END"];
+
+  const state = {
+    defsById: new Map(),
+    defsLoaded: false,
+
+    turn: 1,
+    active: "P1",
+    phase: "MAIN",
+
+    perTurn: {
+      P1: { manaSet:false },
+      P2: { manaSet:false },
+    },
+
+    players: {
+      P1: makeEmptyPlayer(),
+      P2: makeEmptyPlayer(),
+    },
+
+    selection: null, // {owner:"P1", zone:Z.HAND, index:n}
+    modal: { open:false, cardRef:null }, // cardRef = {owner, zone, index}
+  };
+
+  function makeEmptyPlayer(){
+    return {
+      hero: Array.from({length:4}, () => null),
+      instance: Array.from({length:5}, () => null),
+      monster: Array.from({length:7}, () => null),
+      support: Array.from({length:7}, () => null),
+      hand: [],
+      mana: [],
+      grave: [],
+      banish: [],
+    };
+  }
+
+  // Each placed card is: {id, uid, owner, zone, tapped?, summonSick?, faceDown?}
+  let uidSeq = 1;
+  function makeCardInst(defId, owner){
+    return {
+      id: defId,
+      uid: `${owner}-${uidSeq++}`,
+      owner,
+      zone: null,
+      tapped: false,
+      summonSick: false,
+      faceDown: false,
+    };
+  }
+
+  // ---------- DOM cache ----------
+  const dom = {};
+  function cacheDom(){
+    dom.chipPhase = $("chipPhase");
+    dom.chipTurn = $("chipTurn");
+    dom.chipActive = $("chipActive");
+
+    dom.btnSetup = $("btnSetup");
+    dom.btnPhase = $("btnPhase");
+    dom.btnEndTurn = $("btnEndTurn");
+    dom.btnReset = $("btnReset");
+
+    dom.btnClearDebug = $("btnClearDebug");
+
+    dom.hand = $("hand");
+
+    dom.monP1 = $("monsterSlots");
+    dom.heroP1 = $("heroSlots");
+    dom.instP1 = $("instanceSlots");
+    dom.supP1 = $("supportSlots");
+
+    dom.monP2 = $("monsterSlotsP2");
+    dom.heroP2 = $("heroSlotsP2");
+    dom.instP2 = $("instanceSlotsP2");
+    dom.supP2 = $("supportSlotsP2");
+
+    dom.modal = $("modalBackdrop");
+    dom.modalDialog = $("modalDialog");
+    dom.modalTitle = $("modalTitle");
+    dom.modalBody = $("modalBody");
+  }
+
+  // ---------- Modal ----------
+  function closeModal(){
+    if(!dom.modal) return;
+    dom.modal.style.display = "none";
+    document.body.classList.remove("modal-open");
+    state.modal.open = false;
+    state.modal.cardRef = null;
+  }
+
+  function openModal(title, bodyHtml){
+    if(!dom.modal) return;
+    if(dom.modalTitle) dom.modalTitle.textContent = title || "";
+    if(dom.modalBody) dom.modalBody.innerHTML = bodyHtml || "";
+    dom.modal.style.display = "flex";
+    document.body.classList.add("modal-open");
+    state.modal.open = true;
+  }
+
+  function openPhasePicker(){
+    const items = PHASES.map(p => {
+      const cur = (p===state.phase) ? " (現在)" : "";
+      return `<button class="pill" data-act="setPhase" data-phase="${p}">${p}${cur}</button>`;
+    }).join("");
+    openModal("フェイズ選択", `<div class="stack">${items}</div><div class="small muted" style="margin-top:10px">※プロトタイプのため、任意フェイズへ遷移できます。</div>`);
+  }
+
+  // ---------- Defs loading ----------
+  async function loadDefs(){
+    try{
+      const res = await fetch("cards.json", {cache:"no-store"});
+      if(!res.ok) throw new Error("cards.json fetch failed: " + res.status);
+      const arr = await res.json();
+      const map = new Map();
+      for(const d of arr){
+        if(!d || !d.id) continue;
+        map.set(d.id, d);
+      }
+      state.defsById = map;
+      state.defsLoaded = true;
+      log(`cards.json loaded (${map.size} cards)`);
+      return true;
+    }catch(err){
+      state.defsLoaded = false;
+      log("cards.json 読み込み失敗: " + (err && err.message ? err.message : String(err)));
+      // minimal fallback
+      const fallback = [
+        {id:"m_fallback_1", name:"フォールバック兵", cardType:"MONSTER", subType:"S", cost:1, atk:100, hp:200, text:""},
+        {id:"sp_fallback_1", name:"フォールバック魔法", cardType:"SPELL", cost:1, effect:{kind:"damage", amount:100, target:"opponentHero"}, text:""},
+        {id:"su_fallback_1", name:"フォールバック支援", cardType:"SUPPORT", cost:1, lp:1, text:""},
+        {id:"h_fallback_1", name:"フォールバックヒーロー", cardType:"HERO", lp:800, text:""},
+        {id:"i_fallback_1", name:"フォールバック・インスタンス", cardType:"INSTANCE", text:""},
+      ];
+      const map = new Map(fallback.map(x=>[x.id,x]));
+      state.defsById = map;
+      return false;
+    }
+  }
+
+  function defOf(inst){
+    if(!inst) return null;
+    return state.defsById.get(inst.id) || null;
+  }
+
+  // ---------- Mana helpers ----------
+  function manaAvailable(owner){
+    const p = state.players[owner];
+    let total = 0;
+    for(const c of p.mana){
+      if(!c.tapped) total++;
+    }
+    return total;
+  }
+
+  function tapMana(owner, n){
+    const p = state.players[owner];
+    let need = n;
+    for(const c of p.mana){
+      if(need<=0) break;
+      if(!c.tapped){
+        c.tapped = true;
+        need--;
+      }
+    }
+    return need===0;
+  }
+
+  function untapAllMana(owner){
+    const p = state.players[owner];
+    for(const c of p.mana) c.tapped = false;
+  }
+
+  // ---------- Demo setup ----------
+  function resetGame(){
+    state.turn = 1;
+    state.active = "P1";
+    state.phase = "MAIN";
+    state.perTurn.P1 = {manaSet:false};
+    state.perTurn.P2 = {manaSet:false};
+    state.players.P1 = makeEmptyPlayer();
+    state.players.P2 = makeEmptyPlayer();
+    state.selection = null;
+    closeModal();
+    log("リセットしました。");
+    render();
+  }
+
+  function pickByType(cardType){
+    for(const d of state.defsById.values()){
+      if(String(d.cardType).toUpperCase() === cardType) return d.id;
+    }
+    return null;
+  }
+
+  function pickMany(predicate, n){
+    const out = [];
+    for(const d of state.defsById.values()){
+      if(predicate(d)) out.push(d.id);
+      if(out.length>=n) break;
+    }
+    return out;
+  }
+
+  function setupDemo(){
+    if(!state.defsById || state.defsById.size===0){
+      log("カード定義がありません。先に cards.json を読み込んでください。");
+      return;
+    }
+    resetGame();
+
+    // P1 heroes / instances
+    const heroIds = pickMany(d => String(d.cardType).toUpperCase()==="HERO", 4);
+    const instIds = pickMany(d => String(d.cardType).toUpperCase()==="INSTANCE", 5);
+    for(let i=0;i<4;i++){
+      const id = heroIds[i] || pickByType("HERO") || "h_fallback_1";
+      const c = makeCardInst(id, "P1");
+      c.zone = Z.HERO;
+      state.players.P1.hero[i] = c;
+    }
+    for(let i=0;i<5;i++){
+      const id = instIds[i] || pickByType("INSTANCE") || "i_fallback_1";
+      const c = makeCardInst(id, "P1");
+      c.zone = Z.INST;
+      c.faceDown = TrueForInstance();
+      state.players.P1.instance[i] = c;
+    }
+
+    // P2 heroes / instances
+    for(let i=0;i<4;i++){
+      const id = heroIds[(i+1)%heroIds.length] || pickByType("HERO") || "h_fallback_1";
+      const c = makeCardInst(id, "P2");
+      c.zone = Z.HERO;
+      state.players.P2.hero[i] = c;
+    }
+    for(let i=0;i<5;i++){
+      const id = instIds[(i+1)%instIds.length] || pickByType("INSTANCE") || "i_fallback_1";
+      const c = makeCardInst(id, "P2");
+      c.zone = Z.INST;
+      c.faceDown = true; // opponent instance always facedown
+      state.players.P2.instance[i] = c;
+    }
+
+    // P1 hand: 5 cards (prefer monsters/spells/support)
+    const handIds = [];
+    handIds.push(...pickMany(d => ["MONSTER","SPELL","SUPPORT"].includes(String(d.cardType).toUpperCase()), 8));
+    while(handIds.length<5){
+      for(const d of state.defsById.values()){ handIds.push(d.id); if(handIds.length>=5) break; }
+    }
+    state.players.P1.hand = handIds.slice(0,5).map(id=>{
+      const c = makeCardInst(id, "P1"); c.zone = Z.HAND; return c;
+    });
+
+    // Give each side some mana cards (2)
+    for(let i=0;i<2;i++){
+      const id = state.players.P1.hand[i] ? state.players.P1.hand[i].id : (pickByType("MONSTER")||"m_fallback_1");
+      const c = makeCardInst(id, "P1"); c.zone=Z.MANA; state.players.P1.mana.push(c);
+    }
+    for(let i=0;i<2;i++){
+      const id = pickByType("MONSTER")||"m_fallback_1";
+      const c = makeCardInst(id, "P2"); c.zone=Z.MANA; c.faceDown=true; state.players.P2.mana.push(c);
+    }
+
+    // Put one opponent monster/support to visually confirm
+    const oppMon = pickByType("MONSTER") || "m_fallback_1";
+    const om = makeCardInst(oppMon, "P2"); om.zone=Z.MON; om.summonSick=false;
+    state.players.P2.monster[0] = om;
+
+    const oppSup = pickByType("SUPPORT") || "su_fallback_1";
+    const os = makeCardInst(oppSup, "P2"); os.zone=Z.SUP; os.faceDown=true;
+    state.players.P2.support[0] = os;
+
+    log("デモセットアップ完了。");
+    render();
+  }
+
+  function TrueForInstance(){ return true; } // keep explicit for readability
+
+  // ---------- Actions ----------
+  function endTurn(){
+    // Finish phase
+    state.phase = "END";
+    // switch active
+    state.active = (state.active==="P1") ? "P2" : "P1";
+    if(state.active==="P1") state.turn += 1;
+
+    // Reset per-turn
+    state.perTurn[state.active].manaSet = false;
+
+    // Untap mana and clear summon sickness for active player's monsters
+    untapAllMana(state.active);
+    const p = state.players[state.active];
+    for(const c of p.monster){
+      if(c) c.summonSick = false;
+    }
+
+    // Auto set phase to DRAW for new active
+    state.phase = "DRAW";
+    log(`ターン交代: Active=${state.active} / Turn=${state.turn}`);
+    render();
+  }
+
+  function setPhase(p){
+    if(!PHASES.includes(p)) return;
+    state.phase = p;
+    log(`フェイズ: ${p}`);
+    render();
+  }
+
+  function canPay(owner, cost){
+    return manaAvailable(owner) >= cost;
+  }
+
+  function requireActive(owner){
+    return owner === state.active;
+  }
+
+  function moveToGrave(inst){
+    const owner = inst.owner;
+    const p = state.players[owner];
+    inst.zone = Z.GRAVE;
+    inst.faceDown = false;
+    inst.tapped = false;
+    inst.summonSick = false;
+    p.grave.push(inst);
+  }
+
+  function actToMana(ref){
+    const {owner, zone, index} = ref;
+    if(!requireActive(owner)){ log("自分の手番ではありません。"); return; }
+    if(zone !== Z.HAND){ log("手札からのみマナ化できます。"); return; }
+    if(state.perTurn[owner].manaSet){ log("このターンは既にマナ化しました。"); return; }
+
+    const p = state.players[owner];
+    const inst = p.hand[index];
+    if(!inst){ return; }
+    // remove from hand
+    p.hand.splice(index,1);
+    inst.zone = Z.MANA;
+    inst.tapped = false;
+    p.mana.push(inst);
+    state.perTurn[owner].manaSet = true;
+    log(`マナへ: ${defOf(inst)?.name || inst.id}`);
+    render();
+  }
+
+  function actSummon(ref){
+    const {owner, zone, index} = ref;
+    if(!requireActive(owner)){ log("自分の手番ではありません。"); return; }
+    if(zone !== Z.HAND){ log("召喚は手札からのみ。"); return; }
+    if(state.phase !== "MAIN"){ log("召喚はMAINのみ。"); return; }
+
+    const p = state.players[owner];
+    const inst = p.hand[index];
+    const d = defOf(inst);
+    if(!d){ log("カード定義不明。"); return; }
+    const ctype = String(d.cardType).toUpperCase();
+    if(ctype !== "MONSTER"){ log("モンスター以外は召喚できません。"); return; }
+
+    const cost = Number(d.cost||0);
+    if(!canPay(owner, cost)){ log(`マナ不足（必要${cost} / 残${manaAvailable(owner)}）。`); return; }
+    // find empty monster slot
+    const slot = p.monster.findIndex(x=>!x);
+    if(slot<0){ log("モンスターゾーンが満杯です。"); return; }
+
+    tapMana(owner, cost);
+    p.hand.splice(index,1);
+    inst.zone = Z.MON;
+    inst.summonSick = true; // summon sickness indicator
+    p.monster[slot]=inst;
+    log(`召喚: ${d.name}（Cost${cost}） -> スロット${slot+1}（召喚酔い）`);
+    render();
+  }
+
+  function actSet(ref){
+    const {owner, zone, index} = ref;
+    if(!requireActive(owner)){ log("自分の手番ではありません。"); return; }
+    if(zone !== Z.HAND){ log("セットは手札からのみ。"); return; }
+    if(state.phase !== "MAIN"){ log("セットはMAINのみ。"); return; }
+
+    const p = state.players[owner];
+    const inst = p.hand[index];
+    const d = defOf(inst);
+    if(!d){ log("カード定義不明。"); return; }
+    const ctype = String(d.cardType).toUpperCase();
+    if(!(ctype==="SPELL" || ctype==="SUPPORT")){ log("魔法/サポートのみセット可能。"); return; }
+
+    const cost = Number(d.cost||0);
+    if(!canPay(owner, cost)){ log(`マナ不足（必要${cost} / 残${manaAvailable(owner)}）。`); return; }
+
+    const slot = p.support.findIndex(x=>!x);
+    if(slot<0){ log("サポート・魔法ゾーンが満杯です。"); return; }
+
+    tapMana(owner, cost);
+    p.hand.splice(index,1);
+    inst.zone = Z.SUP;
+    inst.faceDown = true;
+    p.support[slot]=inst;
+    log(`セット: ${d.name}（Cost${cost}） -> スロット${slot+1}`);
+    render();
+  }
+
+  function actActivate(ref){
+    const {owner, zone, index} = ref;
+    if(!requireActive(owner)){ log("自分の手番ではありません。"); return; }
+
+    const p = state.players[owner];
+    let inst = null;
+    if(zone===Z.HAND){
+      inst = p.hand[index];
+    }else if(zone===Z.SUP){
+      inst = p.support[index];
+    }else if(zone===Z.INST){
+      inst = p.instance[index];
+    }else if(zone===Z.HERO){
+      inst = p.hero[index];
+    }else{
+      log("この領域からは発動できません。");
+      return;
+    }
+    if(!inst) return;
+    const d = defOf(inst);
+    if(!d){ log("カード定義不明。"); return; }
+
+    const ctype = String(d.cardType).toUpperCase();
+    if(ctype==="MONSTER"){
+      log("（効果発動は未実装）");
+      return;
+    }
+    if(ctype==="HERO"){
+      log(`ヒーロー効果: ${d.name}（未実装）`);
+      return;
+    }
+    if(ctype==="INSTANCE"){
+      log(`インスタンス発動: ${d.name}（未実装）`);
+      // move to grave after use
+      p.instance[index]=null;
+      moveToGrave(inst);
+      render();
+      return;
+    }
+    if(ctype==="SPELL" || ctype==="SUPPORT"){
+      // If in hand, treat as "activate from hand" (no set)
+      const cost = Number(d.cost||0);
+      if(!canPay(owner, cost)){ log(`マナ不足（必要${cost} / 残${manaAvailable(owner)}）。`); return; }
+      tapMana(owner, cost);
+
+      if(zone===Z.HAND){
+        p.hand.splice(index,1);
+      }else if(zone===Z.SUP){
+        p.support[index]=null;
+      }
+
+      inst.faceDown=false;
+      log(`発動: ${d.name}（Cost${cost}）`);
+      // sample: damage effect
+      if(d.effect && d.effect.kind==="damage"){
+        applyDamageEffect(owner, d.effect);
+      }
+      // spell goes to grave; support also goes grave for now (LP持続は後で)
+      moveToGrave(inst);
+      render();
+      return;
+    }
+  }
+
+  function applyDamageEffect(owner, effect){
+    const amount = Number(effect.amount||0);
+    // simple target: opponent hero[0] if exists
+    const opp = (owner==="P1")?"P2":"P1";
+    const ph = state.players[opp].hero;
+    const tgtIdx = ph.findIndex(x=>!!x);
+    if(tgtIdx<0){ log("相手ヒーローがいません。"); return; }
+    const tgt = ph[tgtIdx];
+    const d = defOf(tgt);
+    // store current hp on instance if not present
+    if(tgt._lp==null) tgt._lp = Number(d?.lp ?? 800);
+    tgt._lp = Math.max(0, tgt._lp - amount);
+    log(`→ 相手ヒーローに${amount}ダメージ（残LP:${tgt._lp}）`);
+  }
+
+  // ---------- Rendering ----------
+  function cardLabel(inst, viewer){
+    const d = defOf(inst);
+    if(!d) return {top: inst.id, mid:"", bot:""};
+    const ctype = String(d.cardType).toUpperCase();
+    const facedown = inst.faceDown && (viewer !== inst.owner);
+    if(facedown){
+      if(ctype==="INSTANCE") return {top:"インスタンス", mid:"（伏せ）", bot:""};
+      if(ctype==="SPELL" || ctype==="SUPPORT") return {top:"（伏せ）", mid:"", bot:""};
+    }
+    let mid = "";
+    if(ctype==="MONSTER"){
+      mid = `ATK:${d.atk ?? "-"} / HP:${d.hp ?? "-"}`;
+    }else if(ctype==="HERO"){
+      const lp = (inst._lp!=null) ? inst._lp : (d.lp ?? "-");
+      mid = `LP:${lp}`;
+    }else if(ctype==="SUPPORT"){
+      mid = `LP:${d.lp ?? 1}`;
+    }else if(ctype==="SPELL"){
+      mid = `SPELL / Cost:${d.cost ?? 0}`;
+    }else if(ctype==="INSTANCE"){
+      mid = `INSTANCE`;
+    }
+    return {
+      top: d.name || inst.id,
+      mid,
+      bot: (ctype==="MONSTER" ? `Cost:${d.cost ?? 0}` : (d.cost!=null?`Cost:${d.cost}`:""))
+    };
+  }
+
+  function renderSlotRow(el, cards, opts){
+    if(!el) return;
+    const {owner, zone, viewer, max, facedownForOpponent} = opts;
+    el.innerHTML = "";
+    for(let i=0;i<max;i++){
+      const inst = cards[i] || null;
+      const slot = document.createElement("div");
+      slot.className = "slot";
+      slot.dataset.owner = owner;
+      slot.dataset.zone = zone;
+      slot.dataset.index = String(i);
+
+      if(!inst){
+        slot.innerHTML = `<div class="empty">空</div>`;
+        el.appendChild(slot);
+        continue;
+      }
+
+      const facedown = (viewer !== inst.owner) && inst.faceDown;
+      const lbl = cardLabel(inst, viewer);
+
+      slot.classList.add("hasCard");
+      if(facedown) slot.classList.add("facedown");
+      if(inst.tapped) slot.classList.add("tapped");
+      if(inst.summonSick) slot.classList.add("sick");
+
+      const badge = inst.summonSick ? `<div class="badge">召喚酔い</div>` : "";
+      slot.innerHTML = `
+        ${badge}
+        <div class="cardTop">${esc(lbl.top)}</div>
+        <div class="cardMid">${esc(lbl.mid)}</div>
+        <div class="cardBot">${esc(lbl.bot)}</div>
+      `;
+      el.appendChild(slot);
+    }
+  }
+
+  function renderHand(){
+    if(!dom.hand) return;
+    const p = state.players.P1;
+    dom.hand.innerHTML = "";
+    p.hand.forEach((inst, i)=>{
+      const d = defOf(inst);
+      const div = document.createElement("div");
+      div.className = "card";
+      div.dataset.owner = "P1";
+      div.dataset.zone = Z.HAND;
+      div.dataset.index = String(i);
+      div.innerHTML = `
+        <div class="cardTitle">${esc(d?.name || inst.id)}</div>
+        <div class="cardMeta">${esc(String(d?.cardType||"").toUpperCase())} / Cost:${esc(d?.cost ?? 0)}</div>
+      `;
+      dom.hand.appendChild(div);
+    });
+  }
+
+  function renderChips(){
+    if(dom.chipPhase) dom.chipPhase.textContent = `Phase: ${state.phase}`;
+    if(dom.chipTurn) dom.chipTurn.textContent = `Turn: ${state.turn}`;
+    if(dom.chipActive) dom.chipActive.textContent = `Active: ${state.active}`;
+  }
+
+  function render(){
+    renderChips();
+    // P2 (viewer is P1)
+    renderSlotRow(dom.supP2, state.players.P2.support, {owner:"P2", zone:Z.SUP, viewer:"P1", max:7});
+    renderSlotRow(dom.instP2, state.players.P2.instance, {owner:"P2", zone:Z.INST, viewer:"P1", max:5});
+    renderSlotRow(dom.heroP2, state.players.P2.hero, {owner:"P2", zone:Z.HERO, viewer:"P1", max:4});
+    renderSlotRow(dom.monP2, state.players.P2.monster, {owner:"P2", zone:Z.MON, viewer:"P1", max:7});
+
+    // P1
+    renderSlotRow(dom.monP1, state.players.P1.monster, {owner:"P1", zone:Z.MON, viewer:"P1", max:7});
+    renderSlotRow(dom.heroP1, state.players.P1.hero, {owner:"P1", zone:Z.HERO, viewer:"P1", max:4});
+    renderSlotRow(dom.instP1, state.players.P1.instance, {owner:"P1", zone:Z.INST, viewer:"P1", max:5});
+    renderSlotRow(dom.supP1, state.players.P1.support, {owner:"P1", zone:Z.SUP, viewer:"P1", max:7});
+
+    renderHand();
+  }
+
+  // ---------- Details view ----------
+  function openCardDetails(ref){
+    const {owner, zone, index} = ref;
+    const p = state.players[owner];
+    let inst = null;
+    if(zone===Z.HAND) inst = p.hand[index];
+    else if(zone===Z.MON) inst = p.monster[index];
+    else if(zone===Z.SUP) inst = p.support[index];
+    else if(zone===Z.INST) inst = p.instance[index];
+    else if(zone===Z.HERO) inst = p.hero[index];
+    if(!inst) return;
+
+    const d = defOf(inst);
+    const ctype = String(d?.cardType||"").toUpperCase();
+    const viewer = "P1";
+    const facedown = (viewer !== inst.owner) && inst.faceDown;
+
+    const header = facedown ? "（伏せカード）" : (d?.name || inst.id);
+    const meta = facedown ? "" : `${ctype} / Cost:${d?.cost ?? 0}`;
+    const stats = facedown ? "" : (
+      ctype==="MONSTER" ? `ATK:${d?.atk ?? "-"} / HP:${d?.hp ?? "-"}` :
+      ctype==="HERO" ? `LP:${(inst._lp!=null)?inst._lp:(d?.lp ?? "-")}` :
+      ctype==="SUPPORT" ? `LP:${d?.lp ?? 1}` : ""
+    );
+
+    // Action buttons by type + location
+    const buttons = [];
+    if(owner==="P1"){
+      if(zone===Z.HAND && ctype==="MONSTER") buttons.push(btn("召喚", "summon"));
+      if(zone===Z.HAND) buttons.push(btn("マナへ", "mana"));
+      if(zone===Z.HAND && (ctype==="SPELL"||ctype==="SUPPORT")) buttons.push(btn("セット", "set"));
+      if((ctype==="SPELL"||ctype==="SUPPORT") && (zone===Z.HAND || zone===Z.SUP)) buttons.push(btn("発動", "activate"));
+      if(ctype==="INSTANCE" && zone===Z.INST) buttons.push(btn("発動", "activate"));
+      if(ctype==="HERO" && zone===Z.HERO) buttons.push(btn("効果", "activate"));
+      if(ctype==="MONSTER" && zone===Z.MON) buttons.push(btn("効果", "activate"));
+    }
+
+    const body = `
+      <div class="small muted">${esc(meta)}</div>
+      <div class="hr" style="margin:10px 0"></div>
+      <div class="small">${esc(stats)}</div>
+      <div class="hr" style="margin:10px 0"></div>
+      <div class="actionsRow">${buttons.join("") || `<div class="small muted">（このカードで実行できる操作はありません）</div>`}</div>
+      <div class="hr" style="margin:10px 0"></div>
+      <div class="small muted">ゾーン: ${esc(zone)} / Owner:${esc(owner)} / UID:${esc(inst.uid)}</div>
+    `;
+    state.modal.cardRef = ref;
+    openModal(header, body);
+  }
+
+  function btn(label, act){
+    return `<button class="primary" data-act="${act}">${esc(label)}</button>`;
+  }
+
+  // ---------- Event binding ----------
+  function bindEvents(){
+    if(dom.btnSetup) dom.btnSetup.addEventListener("click", ()=>setupDemo());
+    if(dom.btnReset) dom.btnReset.addEventListener("click", ()=>resetGame());
+    if(dom.btnPhase) dom.btnPhase.addEventListener("click", ()=>openPhasePicker());
+    if(dom.btnEndTurn) dom.btnEndTurn.addEventListener("click", ()=>endTurn());
+    if(dom.btnClearDebug) dom.btnClearDebug.addEventListener("click", ()=>{ if(dbgEl) dbgEl.textContent=""; });
+
+    // modal close by clicking backdrop or "close" button
+    if(dom.modal){
+      dom.modal.addEventListener("click", (e)=>{
+        const t = e.target;
+        if(!(t instanceof HTMLElement)) return;
+
+        // backdrop click
+        if(t.id==="modalBackdrop" || t.id==="btnModalClose"){
+          closeModal();
+          return;
+        }
+
+        // phase picker
+        if(t.dataset && t.dataset.act==="setPhase"){
+          const ph = t.dataset.phase;
+          setPhase(ph);
+          closeModal();
+          return;
+        }
+
+        // card action buttons
+        const act = t.dataset ? t.dataset.act : "";
+        if(!act) return;
+        const ref = state.modal.cardRef;
+        if(!ref) return;
+
+        if(act==="summon") actSummon(ref);
+        if(act==="mana") actToMana(ref);
+        if(act==="set") actSet(ref);
+        if(act==="activate") actActivate(ref);
+      });
+    }
+
+    // delegated board clicks on slots and hand cards
+    document.addEventListener("click", (e)=>{
+      const t = e.target;
+      if(!(t instanceof HTMLElement)) return;
+
+      const slot = t.closest(".slot");
+      const card = t.closest(".card");
+
+      if(slot && slot.dataset){
+        const owner = slot.dataset.owner;
+        const zone = slot.dataset.zone;
+        const index = Number(slot.dataset.index||"-1");
+        if(owner && zone && index>=0){
+          openCardDetails({owner, zone, index});
+        }
+        return;
+      }
+
+      if(card && card.dataset){
+        const owner = card.dataset.owner;
+        const zone = card.dataset.zone;
+        const index = Number(card.dataset.index||"-1");
+        if(owner && zone && index>=0){
+          openCardDetails({owner, zone, index});
+        }
+      }
+    }, {passive:true});
+  }
+
+  // ---------- Boot ----------
+  async async function init(){
+    cacheDom();
+    dbg(`JS ready (${VERSION})`);
+    bindEvents();
+    await loadDefs();
+    render();
+  }
+
+  // Start
+  if(document.readyState==="loading"){
+    document.addEventListener("DOMContentLoaded", init, {once:true});
+  }else{
+    init();
+  }
+
+})();
+</script>
+</body>
