@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
-<title>Card Game Prototype — v24</title>
+<title>Card Game Prototype — v25</title>
 <style>
   :root{
     --bg:#0b1020;
@@ -121,7 +121,7 @@
 </style>
 </head>
 <body>
-<div id="jsStatus">JS未起動（v24）</div>
+<div id="jsStatus">JS未起動（v25）</div>
 
 <header>
   <div class="bar">
@@ -203,7 +203,7 @@
 <script>
 (() => {
   "use strict";
-  const VERSION = "v24";
+  const VERSION = "v25";
 
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (m) => ({ "&":"&amp;","<":"&lt;",">":"&gt;", '"':"&quot;","'":"&#39;" }[m]));
@@ -308,6 +308,19 @@
         if(!d) continue;
         map.set(d.id, d);
       }
+      
+      // Ensure fallback defs exist even when custom cards.json doesn't include them
+      const fallbackDefs = [
+        {id:"m_fallback_1", name:"フォールバック兵", cardType:"MONSTER", subType:"S", cost:1, atk:100, hp:200, text:""},
+        {id:"sp_fallback_1", name:"フォールバック魔法", cardType:"SPELL", cost:1, effect:{kind:"damage", amount:100, target:"opponentHero"}, text:""},
+        {id:"su_fallback_1", name:"フォールバック支援", cardType:"SUPPORT", cost:1, lp:1, text:""},
+        {id:"h_fallback_1", name:"フォールバックヒーロー", cardType:"HERO", lp:800, text:""},
+        {id:"i_fallback_1", name:"フォールバック・インスタンス", cardType:"INSTANCE", text:""},
+      ];
+      for(const fd of fallbackDefs){
+        if(fd && fd.id && !map.has(fd.id)) map.set(fd.id, fd);
+      }
+
       state.defsById = map;
       state.defsLoaded = true;
       log(`cards.json loaded (${map.size} cards)`);
@@ -381,8 +394,10 @@
       state.players.P1.hero[i] = c;
     }
     for(let i=0;i<5;i++){
-      const id = instIds[i] || "I_001";
-      const c = makeCardInst(id, "P1"); c.zone = Z.INST; c.faceDown = true;
+      const id = instIds.length ? instIds[i % instIds.length] : (pickByType("INSTANCE") || "i_fallback_1");
+      const c = makeCardInst(id, "P1");
+      c.zone = Z.INST;
+      c.faceDown = true;
       state.players.P1.instance[i] = c;
     }
 
@@ -392,8 +407,10 @@
       state.players.P2.hero[i] = c;
     }
     for(let i=0;i<5;i++){
-      const id = instIds[(i+1)%instIds.length] || "I_001";
-      const c = makeCardInst(id, "P2"); c.zone = Z.INST; c.faceDown = true;
+      const id = instIds.length ? instIds[(i+1) % instIds.length] : (pickByType("INSTANCE") || "i_fallback_1");
+      const c = makeCardInst(id, "P2");
+      c.zone = Z.INST;
+      c.faceDown = true; // opponent instance always facedown
       state.players.P2.instance[i] = c;
     }
 
