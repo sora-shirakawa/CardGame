@@ -235,31 +235,36 @@
   }
 
   async function loadDefs(){
-    try{
-      const res = await fetch("./cards.json", {cache:"no-store"});
-      if(!res.ok) throw new Error("cards.json fetch failed: "+res.status);
-      const arr = await res.json();
-      const map = new Map();
-      for(const d of arr){
-        const id = d?.id ?? d?.cardId ?? d?.key;
-        if(!id) continue;
-        map.set(String(id), {...d, id:String(id)});
-      }
-      state.defs = map;
-      log(`cards.json loaded (${map.size})`);
-    }catch(err){
-      dbg("cards.json load failed: " + (err?.message || String(err)));
-      log("cards.json 読み込み失敗。フォールバックで起動します。");
-      const fallback = [
-        {id:"m_fb_1", name:"フォールバック兵", cardType:"MONSTER", cost:1, atk:100, hp:200},
-        {id:"sp_fb_1", name:"フォールバック魔法", cardType:"SPELL", cost:1, effect:{kind:"damage", amount:100}},
-        {id:"su_fb_1", name:"フォールバック支援", cardType:"SUPPORT", cost:1, lp:1},
-        {id:"h_fb_1", name:"フォールバックヒーロー", cardType:"HERO", lp:800},
-        {id:"i_fb_1", name:"フォールバック・インスタンス", cardType:"INSTANCE"},
-      ];
-      state.defs = new Map(fallback.map(x=>[x.id,x]));
+  try{
+    const base = location.href.split("#")[0].split("?")[0];
+    const baseDir = base.endsWith("/") ? base : base + "/";
+    const url = new URL("cards.json", baseDir);
+    url.searchParams.set("t", Date.now()); // CDN/キャッシュ完全回避
+
+    log("cards.json fetch: " + url.toString());
+
+    const res = await fetch(url.toString(), { cache:"no-store" });
+    log("cards.json status: " + res.status + " " + res.statusText);
+
+    const text = await res.text();
+    log("cards.json first chars: " + text.slice(0, 40).replace(/\n/g,"\\n"));
+
+    const arr = JSON.parse(text); // ここで落ちるならJSONが原因
+    const map = new Map();
+    for(const d of arr){
+      if(d && d.id) map.set(d.id, d);
     }
+    state.defsById = map;
+    state.defsLoaded = true;
+    log(`cards.json loaded (${map.size} cards)`);
+    return true;
+  }catch(err){
+    state.defsLoaded = false;
+    log("cards.json 読み込み失敗: " + (err?.message ?? String(err)));
+    // fallback...
+    return false;
   }
+}
 
   let uidSeq=1;
   function makeInst(owner, defId, zone){ return {uid:"c"+(uidSeq++), owner, defId, zone, facedown:false, tapped:false, summonSick:false, statuses:{atkBuff:0, hp:null, lp:null}}; }
