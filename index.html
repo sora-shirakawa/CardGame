@@ -243,20 +243,28 @@
 
     log("cards.json fetch: " + url.toString());
 
-    const res = await fetch(url.toString(), { cache:"no-store" });
-    log("cards.json status: " + res.status + " " + res.statusText);
+    const res = await fetch("cards.json", { cache: "no-store" });
+const data = await res.json();
 
-    const text = await res.text();
-    log("cards.json first chars: " + text.slice(0, 40).replace(/\n/g,"\\n"));
+// cards.json が
+// { version, notes, cards: [...] }
+// という形式でも読めるようにする
+const arr = Array.isArray(data) ? data : data.cards;
 
-    const arr = JSON.parse(text); // ここで落ちるならJSONが原因
-    const map = new Map();
-    for(const d of arr){
-      if(d && d.id) map.set(d.id, d);
-    }
-    state.defsById = map;
-    state.defsLoaded = true;
-    log(`cards.json loaded (${map.size} cards)`);
+if(!Array.isArray(arr)){
+  throw new Error("cards.json の形式が不正です（配列 or {cards:[...] } ではありません）");
+}
+
+const map = new Map();
+for(const d of arr){
+  if(d && d.id){
+    map.set(d.id, d);
+  }
+}
+
+state.defsById = map;
+state.defsLoaded = true;
+log(`cards.json loaded (${map.size} cards)`);
     return true;
   }catch(err){
     state.defsLoaded = false;
