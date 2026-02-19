@@ -271,7 +271,7 @@
 <script>
 (() => {
   "use strict";
-  const VERSION = "v28";
+  const VERSION = "v31";
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (m) => ({ "&":"&amp;","<":"&lt;",">":"&gt;", "\"":"&quot;","'":"&#39;" }[m]));
   const now = () => new Date().toLocaleTimeString();
