@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
-<title>Card Game Prototype — v25</title>
+<title>Card Game Prototype — v26</title>
 <style>
   :root{
     --bg:#0b1020;
@@ -78,6 +78,14 @@
   .slotRow.nowrap::-webkit-scrollbar-thumb{background:rgba(255,255,255,.18);border-radius:999px}
   .slotRow.nowrap::-webkit-scrollbar-track{background:rgba(255,255,255,.06);border-radius:999px}
 
+  .heroGrid{
+    display:grid;
+    grid-template-columns:repeat(2, minmax(140px, 170px));
+    gap:10px;
+    align-items:stretch;
+    justify-content:start;
+  }
+
   .slot{
     width:170px; min-width:170px;
     height:92px;
@@ -121,7 +129,7 @@
 </style>
 </head>
 <body>
-<div id="jsStatus">JS未起動（v25）</div>
+<div id="jsStatus">JS未起動（v26）</div>
 
 <header>
   <div class="bar">
@@ -153,7 +161,7 @@
       <div id="instanceSlotsP2" class="slotRow nowrap"></div>
       <div class="hr"></div>
       <div class="small">ヒーローゾーン（相手）</div>
-      <div id="heroSlotsP2" class="slotRow nowrap"></div>
+      <div id="heroSlotsP2" class="heroGrid"></div>
       <div class="hr"></div>
       <div class="small">モンスターゾーン（相手）</div>
       <div id="monsterSlotsP2" class="slotRow nowrap"></div>
@@ -169,7 +177,7 @@
       <div id="monsterSlotsP1" class="slotRow nowrap"></div>
       <div class="hr"></div>
       <div class="small">ヒーローゾーン（自分）</div>
-      <div id="heroSlotsP1" class="slotRow nowrap"></div>
+      <div id="heroSlotsP1" class="heroGrid"></div>
       <div class="hr"></div>
       <div class="small">インスタンスゾーン（自分）</div>
       <div id="instanceSlotsP1" class="slotRow nowrap"></div>
@@ -203,7 +211,7 @@
 <script>
 (() => {
   "use strict";
-  const VERSION = "v25";
+  const VERSION = "v26";
 
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (m) => ({ "&":"&amp;","<":"&lt;",">":"&gt;", '"':"&quot;","'":"&#39;" }[m]));
@@ -256,19 +264,19 @@
     players: { P1: makeEmptyPlayer(), P2: makeEmptyPlayer() },
   };
 
-  function normalizeType(raw){
-    const t = String(raw?.cardType ?? raw?.type ?? raw?.card_type ?? "").trim().toUpperCase();
-    const base = t.split(/[\/\s]/)[0];
-    if(base === "MONSTER" || base === "MONSTER".toLowerCase().toUpperCase()) return "MONSTER";
-    if(base === "HERO") return "HERO";
-    if(base === "INSTANCE") return "INSTANCE";
-    if(base === "SUPPORT") return "SUPPORT";
-    if(base === "SPELL") return "SPELL";
-    if(base === "魔法") return "SPELL";
-    if(base === "サポート") return "SUPPORT";
+  function normalizeType(t){
+    const base = String(t||"").trim().toUpperCase();
+    if(base==="MAGIC") return "SPELL";
+    if(base==="SPELL") return "SPELL";
+    if(base==="SUPPORT") return "SUPPORT";
+    if(base==="INSTANCE") return "INSTANCE";
+    if(base==="HERO") return "HERO";
+    if(base==="MONSTER") return "MONSTER";
+    // some legacy aliases
+    if(base==="S") return "SUPPORT";
+    if(base==="M") return "MONSTER";
     return base || "UNKNOWN";
   }
-
   function normalizeDef(raw){
     const id = raw?.id ?? raw?.cardId ?? raw?.card_id ?? raw?.ID ?? null;
     if(!id) return null;
@@ -595,16 +603,47 @@
     if(d.cardType==="SPELL" || d.cardType==="SUPPORT"){
       const cost = Number(d.cost||0);
       if(manaAvailable(owner) < cost){ log(`マナ不足（必要${cost} / 残${manaAvailable(owner)}）。`); return; }
+
+      // SUPPORT: 発動後は基本「設置」(場に残る)
+      if(d.cardType==="SUPPORT"){
+        // ensure a slot exists (from hand = place, from set = flip)
+        let slot = -1;
+        if(zone===Z.SUP){
+          slot = index;
+        }else if(zone===Z.HAND){
+          slot = p.support.findIndex(x=>!x);
+          if(slot<0){ log("サポート・魔法ゾーンが満杯です。"); return; }
+        }
+
+        tapMana(owner, cost);
+
+        if(zone===Z.HAND){
+          p.hand.splice(index,1);
+          inst.zone = Z.SUP;
+          p.support[slot] = inst;
+        }
+        // if from set: keep in same slot
+        inst.faceDown = false;
+        if(inst._lp==null) inst._lp = Number(d.lp ?? 1);
+
+        log(`サポート発動: ${d.name}（Cost${cost}） -> 設置`);
+        // 効果処理(持続/常在)は後で。ここでは設置だけ確定。
+        render();
+        return;
+      }
+
+      // SPELL: 発動後は墓地へ
       tapMana(owner, cost);
 
       if(zone===Z.HAND) p.hand.splice(index,1);
       if(zone===Z.SUP) p.support[index] = null;
 
       inst.faceDown = false;
-      log(`発動: ${d.name}（Cost${cost}）`);
+      log(`魔法発動: ${d.name}（Cost${cost}）`);
 
-      if(d.effect?.kind === "damage") applyDamageEffect(owner, d.effect);
-
+      if(d.effect && d.effect.kind==="damage"){
+        applyDamageEffect(owner, d.effect);
+      }
       moveToGrave(inst);
       render();
       return;
