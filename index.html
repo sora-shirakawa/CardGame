@@ -234,42 +234,30 @@
     openModal(`${owner} / ${pile.toUpperCase()}（${arr.length}）`, `<div class="cards" style="flex-direction:column">${cards}</div>`);
   }
 
-  async function loadDefs(){
+async function loadDefs(){
   try{
-    const base = location.href.split("#")[0].split("?")[0];
-    const baseDir = base.endsWith("/") ? base : base + "/";
-    const url = new URL("cards.json", baseDir);
-    url.searchParams.set("t", Date.now()); // CDN/キャッシュ完全回避
+    const res = await fetch("cards.json", { cache:"no-store" });
+    if(!res.ok) throw new Error("cards.json fetch failed: " + res.status);
 
-    log("cards.json fetch: " + url.toString());
+    const data = await res.json();
+    const arr = Array.isArray(data) ? data : data.cards;   // ★ここが要点
 
-    const res = await fetch("cards.json", { cache: "no-store" });
-const data = await res.json();
+    if(!Array.isArray(arr)){
+      throw new Error("cards.json format invalid (need array or {cards:[...]})");
+    }
 
-// cards.json が
-// { version, notes, cards: [...] }
-// という形式でも読めるようにする
-const arr = Array.isArray(data) ? data : data.cards;
-
-if(!Array.isArray(arr)){
-  throw new Error("cards.json の形式が不正です（配列 or {cards:[...] } ではありません）");
-}
-
-const map = new Map();
-for(const d of arr){
-  if(d && d.id){
-    map.set(d.id, d);
-  }
-}
-
-state.defsById = map;
-state.defsLoaded = true;
-log(`cards.json loaded (${map.size} cards)`);
+    const map = new Map();
+    for(const d of arr){
+      if(d && d.id) map.set(d.id, d);
+    }
+    state.defsById = map;
+    state.defsLoaded = true;
+    log(`cards.json loaded (${map.size} cards)`);
     return true;
   }catch(err){
     state.defsLoaded = false;
     log("cards.json 読み込み失敗: " + (err?.message ?? String(err)));
-    // fallback...
+    // フォールバックは既存のままでOK
     return false;
   }
 }
