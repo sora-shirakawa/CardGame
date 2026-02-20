@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
-<title>Card Game Prototype — v28 (Targeting UI)</title>
+<title>Card Game Prototype — v33</title>
 <style>
   :root{
     --bg:#0b1020;
@@ -159,12 +159,48 @@
     .bar button{flex:1}
     .slot,.card{width:160px; min-width:160px}
   }
+
+  /* --- Flow (deck -> placement -> coin toss) --- */
+  .flowBackdrop{position:fixed;inset:0;z-index:150;background:rgba(0,0,0,.62);display:none;align-items:center;justify-content:center;padding:16px}
+  .flowPanel{width:min(980px, 96vw);max-height:92vh;overflow:auto;background:rgba(12,18,36,.96);border:1px solid var(--line);
+    border-radius:18px;box-shadow:0 20px 70px rgba(0,0,0,.65)}
+  .flowHead{position:sticky;top:0;z-index:10;display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:12px 14px;border-bottom:1px solid var(--line);background:linear-gradient(to bottom, rgba(12,18,36,.98), rgba(12,18,36,.86))}
+  .flowTitle{font-weight:900}
+  .flowBody{padding:14px}
+  .flowGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  @media (max-width:720px){.flowGrid{grid-template-columns:1fr}}
+  .flowCard{border:1px solid var(--line);background:rgba(255,255,255,.05);border-radius:14px;padding:10px;display:flex;gap:10px;justify-content:space-between;align-items:center}
+  .flowCard .n{font-weight:900}
+  .flowCard .m{font-size:12px;color:var(--muted);margin-top:4px}
+  .flowActions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+  .flowHint{font-size:12px;color:var(--muted);line-height:1.5}
+  .flowTopRow{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:space-between;margin-bottom:10px}
+  .pill{border-radius:999px;padding:8px 12px}
+  .pill.on{outline:2px solid rgba(120,200,255,.55)}
 </style>
 </head>
 <body>
-<div id="jsStatus">JS未起動 (v28)</div>
+<div id="jsStatus">JS未起動 (v32)</div>
 <noscript><div style="background:#b45309;color:#fff;padding:10px 12px;font-weight:800">JavaScriptが無効です（noscript）</div></noscript>
 
+<div id="flowBackdrop" class="flowBackdrop">
+  <div class="flowPanel">
+    <div class="flowHead">
+      <div>
+        <div id="flowTitle" class="flowTitle">準備中</div>
+        <div id="flowSub" class="flowHint"></div>
+      </div>
+      <div class="row">
+        <span id="flowStepChip" class="chip">STEP</span>
+        <button id="flowClose" class="pill">閉じる</button>
+      </div>
+    </div>
+    <div id="flowBody" class="flowBody"></div>
+  </div>
+</div>
+
+<div id="mainApp" style="display:none">
 <header>
   <div class="bar">
     <div class="row">
@@ -271,13 +307,20 @@
 <script>
 (() => {
   "use strict";
-  const VERSION = "v31";
+  const VERSION = "v33";
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (m) => ({ "&":"&amp;","<":"&lt;",">":"&gt;", "\"":"&quot;","'":"&#39;" }[m]));
   const now = () => new Date().toLocaleTimeString();
 
   const dom = {
     jsStatus: $("jsStatus"),
+    mainApp: $("mainApp"),
+    flowBackdrop: $("flowBackdrop"),
+    flowTitle: $("flowTitle"),
+    flowSub: $("flowSub"),
+    flowStepChip: $("flowStepChip"),
+    flowBody: $("flowBody"),
+    flowClose: $("flowClose"),
     phaseChip: $("phaseChip"),
     turnChip: $("turnChip"),
     manaChip: $("manaChip"),
@@ -378,7 +421,7 @@
       P2: makeEmptyPlayer(),
     },
 
-    heroSwap: { active:false, owner:"P1", fromRow:null, fromIndex:null },
+    heroSwap: { active:false, owner:"P1", fromRow:null, fromIndex:null, free:false },
 
     targeting: {
       active:false,
@@ -423,6 +466,38 @@
     ensureStats(heroInst);
     return Number(heroInst._lp ?? 0) <= 0;
   }
+
+  function anyAliveHeroInRow(owner, row){
+    const p = state.players[owner];
+    const arr = (row===Z.HEROF) ? p.heroFront : p.heroBack;
+    return arr.some(h => h && !isHeroKO(h));
+  }
+  function allHeroFrontKO(owner){
+    const p = state.players[owner];
+    const front = p.heroFront.filter(Boolean);
+    if(front.length===0) return true;
+    return front.every(h => isHeroKO(h));
+  }
+  function forceSwapHeroRows(owner){
+    const p = state.players[owner];
+    const tmp = p.heroFront;
+    p.heroFront = p.heroBack;
+    p.heroBack = tmp;
+    log(`${owner}: 前衛ヒーローが全滅したため、前後衛を強制入れ替え。`);
+  }
+  function promptSwapOnFrontHeroKO(owner, deadIndex){
+    if(!anyAliveHeroInRow(owner, Z.HEROB)) return;
+    state._koSwap = {owner, deadIndex};
+    openModal(
+      "前衛ヒーロー戦闘不能",
+      `<div class="small">前衛ヒーローが倒れました。後衛と入れ替えますか？（コスト無し）</div>
+       <div class="hr" style="margin:12px 0"></div>
+       <div class="actionsRow">
+         <button class="primary" data-act="koSwapYes">入れ替える</button>
+         <button data-act="koSwapNo">そのまま</button>
+       </div>`
+    );
+  }
   function isMonsterDead(monInst){
     if(!monInst) return false;
     ensureStats(monInst);
@@ -458,7 +533,269 @@
     }
   }
 
-  function resetGame(){
+  
+  // ---------- Flow (Deck -> Hero Placement -> Coin Toss -> Duel Start) ----------
+  const flow = {
+    step: "deck", // deck | placement | coin
+    selectedHeroIds: [],
+    frontIds: [],
+    backIds: [],
+    firstPlayer: null,
+    tossed: false,
+  };
+
+  function showMainApp(on){
+    const el = dom.mainApp;
+    if(!el) return;
+    el.style.display = on ? "block" : "none";
+  }
+  function showFlow(on){
+    if(!dom.flowBackdrop) return;
+    dom.flowBackdrop.style.display = on ? "flex" : "none";
+  }
+
+  function normIsHero(def){ return normType(def) === "HERO"; }
+
+  function heroMeta(def){
+    const lp = def.lp ?? def.LP ?? "-";
+    const rar = def.rarity ? ` / ${def.rarity}` : "";
+    return `LP:${lp}${rar}`;
+  }
+
+  function getAllHeroes(){
+    const out = [];
+    for(const d of state.defsById.values()){
+      if(normIsHero(d)) out.push(d);
+    }
+    out.sort((a,b)=>String(a.id).localeCompare(String(b.id)));
+    return out;
+  }
+
+  function renderFlowDeck(){
+    flow.step = "deck";
+    flow.frontIds = [];
+    flow.backIds = [];
+    flow.firstPlayer = null;
+    flow.tossed = false;
+
+    const heroes = getAllHeroes();
+    dom.flowTitle.textContent = "1) デッキ編集：ヒーローを4枚選択";
+    dom.flowSub.textContent = "ヒーローはデュエル開始時に前衛/後衛へ配置します（前後衛は最低1枚ずつ）。";
+    dom.flowStepChip.textContent = "STEP 1/3";
+    const selected = new Set(flow.selectedHeroIds);
+
+    const top = `
+      <div class="flowTopRow">
+        <div class="chip">選択: <b>${selected.size}</b> / 4</div>
+        <div class="flowActions">
+          <button id="flowDeckClear" class="pill">選択解除</button>
+          <button id="flowDeckNext" class="pill primary" ${selected.size===4 ? "" : "disabled"}>次へ</button>
+        </div>
+      </div>
+    `;
+
+    const grid = heroes.map(h=>{
+      const on = selected.has(h.id);
+      return `
+        <div class="flowCard">
+          <div>
+            <div class="n">${esc(h.name || h.id)}</div>
+            <div class="m">${esc(heroMeta(h))}</div>
+          </div>
+          <div class="flowActions">
+            <button class="pill ${on?"on":""}" data-flow="toggleHero" data-id="${esc(h.id)}">${on?"選択中":"選択"}</button>
+          </div>
+        </div>
+      `;
+    }).join("");
+
+    dom.flowBody.innerHTML = top + `<div class="flowGrid">${grid}</div>`;
+  }
+
+  function renderFlowPlacement(){
+    flow.step = "placement";
+    dom.flowTitle.textContent = "2) 前衛/後衛の配置";
+    dom.flowSub.textContent = "各ヒーローに「前衛へ」「後衛へ」を設定してください（前後衛それぞれ最低1枚）。";
+    dom.flowStepChip.textContent = "STEP 2/3";
+
+    const sel = flow.selectedHeroIds.slice(0,4);
+    const heroesById = new Map(getAllHeroes().map(h=>[h.id,h]));
+    const valid = sel.filter(id=>heroesById.has(id));
+    flow.selectedHeroIds = valid;
+
+    const front = new Set(flow.frontIds);
+    const back  = new Set(flow.backIds);
+    for(const id of [...front]) if(back.has(id)) back.delete(id);
+    flow.frontIds = [...front];
+    flow.backIds = [...back];
+
+    const counts = {front: flow.frontIds.length, back: flow.backIds.length};
+    const ok = (valid.length===4 && counts.front>=1 && counts.back>=1 && (counts.front+counts.back===4));
+
+    const top = `
+      <div class="flowTopRow">
+        <div class="chip">前衛: <b>${counts.front}</b> / 後衛: <b>${counts.back}</b>（合計4）</div>
+        <div class="flowActions">
+          <button id="flowPlaceBack" class="pill">戻る</button>
+          <button id="flowPlaceNext" class="pill primary" ${ok ? "" : "disabled"}>次へ</button>
+        </div>
+      </div>
+      <div class="flowHint" style="margin-bottom:10px">
+        ※前衛3/後衛1、前衛1/後衛3 なども許容します。
+      </div>
+    `;
+
+    const cards = valid.map(id=>{
+      const h = heroesById.get(id);
+      const isF = front.has(id);
+      const isB = back.has(id);
+      return `
+        <div class="flowCard">
+          <div>
+            <div class="n">${esc(h.name || h.id)}</div>
+            <div class="m">${esc(heroMeta(h))}</div>
+          </div>
+          <div class="flowActions">
+            <button class="pill ${isF?"on":""}" data-flow="setFront" data-id="${esc(id)}">前衛へ</button>
+            <button class="pill ${isB?"on":""}" data-flow="setBack" data-id="${esc(id)}">後衛へ</button>
+          </div>
+        </div>
+      `;
+    }).join("");
+
+    dom.flowBody.innerHTML = top + `<div class="flowGrid">${cards}</div>`;
+  }
+
+  function renderFlowCoin(){
+    flow.step = "coin";
+    dom.flowTitle.textContent = "3) 先攻/後攻の決定（コイントス）";
+    dom.flowSub.textContent = "コイントスを行い、結果を確定してからデュエルを開始します。";
+    dom.flowStepChip.textContent = "STEP 3/3";
+
+    const resTxt = flow.tossed ? `結果：<b>${flow.firstPlayer==="P1" ? "あなた（P1）が先攻" : "相手（P2）が先攻"}</b>` : "未実行";
+    dom.flowBody.innerHTML = `
+      <div class="flowTopRow">
+        <div class="chip">${resTxt}</div>
+        <div class="flowActions">
+          <button id="flowCoinBack" class="pill">戻る</button>
+          <button id="flowToss" class="pill primary">コイントス</button>
+          <button id="flowStartDuel" class="pill primary" ${flow.tossed ? "" : "disabled"}>デュエル開始</button>
+        </div>
+      </div>
+      <div class="flowHint">
+        ※相手のヒーローは自動編成（仮）です。
+      </div>
+    `;
+  }
+
+  function openNewDuelFlow(){
+    showMainApp(false);
+    showFlow(true);
+    if(flow.selectedHeroIds.length!==4){
+      const heroes = getAllHeroes();
+      flow.selectedHeroIds = heroes.slice(0,4).map(h=>h.id);
+    }
+    renderFlowDeck();
+  }
+
+  function flowToggleHero(id){
+    const heroes = new Set(getAllHeroes().map(h=>h.id));
+    if(!heroes.has(id)) return;
+
+    const s = new Set(flow.selectedHeroIds);
+    if(s.has(id)) s.delete(id);
+    else { if(s.size>=4) return; s.add(id); }
+    flow.selectedHeroIds = [...s];
+    flow.frontIds = flow.frontIds.filter(x=>x!==id);
+    flow.backIds  = flow.backIds.filter(x=>x!==id);
+    renderFlowDeck();
+  }
+
+  function flowSetFront(id){
+    const s = new Set(flow.selectedHeroIds);
+    if(!s.has(id)) return;
+    const f = new Set(flow.frontIds);
+    const b = new Set(flow.backIds);
+    b.delete(id); f.add(id);
+    flow.frontIds = [...f]; flow.backIds=[...b];
+    renderFlowPlacement();
+  }
+
+  function flowSetBack(id){
+    const s = new Set(flow.selectedHeroIds);
+    if(!s.has(id)) return;
+    const f = new Set(flow.frontIds);
+    const b = new Set(flow.backIds);
+    f.delete(id); b.add(id);
+    flow.frontIds=[...f]; flow.backIds=[...b];
+    renderFlowPlacement();
+  }
+
+  function tossCoin(){
+    flow.tossed = true;
+    flow.firstPlayer = (Math.random()<0.5) ? "P1" : "P2";
+    renderFlowCoin();
+  }
+
+  function autoBuildOpponentHeroes(){
+    const heroes = getAllHeroes();
+    let ids = heroes.slice(0,4).map(h=>h.id);
+    if(ids.length<4){
+      ids = heroes.map(h=>h.id);
+      while(ids.length<4) ids.push(heroes[0]?.id || "H_001");
+      ids = ids.slice(0,4);
+    }
+    const k = 1 + Math.floor(Math.random()*3);
+    return {front: ids.slice(0,k), back: ids.slice(k)};
+  }
+
+  function setupDuelFromSelection(){
+    const sel = flow.selectedHeroIds.slice(0,4);
+    const front = flow.frontIds.filter(id=>sel.includes(id));
+    const back = flow.backIds.filter(id=>sel.includes(id));
+    if(sel.length!==4 || front.length<1 || back.length<1 || front.length+back.length!==4){
+      log("配置が不正です。デッキ編集からやり直してください。");
+      openNewDuelFlow();
+      return;
+    }
+
+    resetGame();
+    state.active = flow.firstPlayer || "P1";
+    state.turn = 1;
+    state.phase = "MAIN";
+
+    const p1 = state.players.P1;
+    p1.heroFront = front.map(id=>{ const c=makeCardInst(id,"P1"); c.zone=Z.HERO; return c; });
+    p1.heroBack  = back.map(id=>{ const c=makeCardInst(id,"P1"); c.zone=Z.HERO; return c; });
+
+    const opp = autoBuildOpponentHeroes();
+    const p2 = state.players.P2;
+    p2.heroFront = opp.front.map(id=>{ const c=makeCardInst(id,"P2"); c.zone=Z.HERO; return c; });
+    p2.heroBack  = opp.back.map(id=>{ const c=makeCardInst(id,"P2"); c.zone=Z.HERO; return c; });
+
+    // instances facedown
+    const instIds = pickMany(d => normType(d)==="INSTANCE", 5);
+    for(let i=0;i<5;i++){
+      const id = instIds[i] || pickByType("INSTANCE") || "IN_301";
+      const c1 = makeCardInst(id,"P1"); c1.zone=Z.INST; c1.faceDown=true; p1.instance[i]=c1;
+      const c2 = makeCardInst(id,"P2"); c2.zone=Z.INST; c2.faceDown=true; p2.instance[i]=c2;
+    }
+
+    // P1 hand
+    const handIds = pickMany(d => ["MONSTER","SPELL","SUPPORT","MAGIC"].includes(normType(d)), 8);
+    while(handIds.length<5){
+      for(const d of state.defsById.values()){ handIds.push(d.id); if(handIds.length>=5) break; }
+    }
+    p1.hand = handIds.slice(0,5).map(id=>{ const c=makeCardInst(id,"P1"); c.zone=Z.HAND; return c; });
+
+    log(`デュエル開始（先攻: ${state.active}）`);
+    showFlow(false);
+    showMainApp(true);
+    render();
+  }
+
+
+function resetGame(){
     state.turn = 1;
     state.active = "P1";
     state.phase = "MAIN";
@@ -466,7 +803,7 @@
     state.perTurn.P2.heroSwapUsed = false;
     state.players.P1 = makeEmptyPlayer();
     state.players.P2 = makeEmptyPlayer();
-    state.heroSwap = { active:false, owner:"P1", fromRow:null, fromIndex:null };
+    state.heroSwap = { active:false, owner:"P1", fromRow:null, fromIndex:null, free:false };
     cancelTargeting(false);
     dom.log.value = "";
     log("リセットしました。");
@@ -543,62 +880,66 @@
     state.perTurn[state.active].heroSwapUsed = false;
     untapAllMana(state.active);
 
-    state.heroSwap = { active:false, owner:"P1", fromRow:null, fromIndex:null };
+    state.heroSwap = { active:false, owner:"P1", fromRow:null, fromIndex:null, free:false };
     cancelTargeting(false);
     log(`ターン終了 → Active=${state.active} / Turn=${state.turn}`);
     render();
   }
 
   // ---------- Hero swap ----------
-  function beginHeroSwap(owner, fromRow, fromIndex){
-    if(owner !== state.active){ log("自分の手番ではありません。"); return; }
-    if(owner !== "P1"){ log("プロトタイプではP1操作のみ"); return; }
-    if(state.perTurn[owner].heroSwapUsed){ log("このターンは既に入れ替え済みです。"); return; }
-    if(manaAvailable(owner) < 1){ log("マナ不足（入れ替えは1マナ）。"); return; }
+  function beginHeroSwap(owner, fromRow, fromIndex, free=false){
+    // free=true: 前衛ヒーロー戦闘不能時の任意/強制入れ替え（コスト無し・回数制限無し）
+    const fromRef = {owner, zone: fromRow, index: fromIndex};
+    const inst = getInstByRef(fromRef);
+    if(!inst) return;
+    if(isHeroKO(inst)){ log("戦闘不能ヒーローからは入れ替え開始できません。"); return; }
 
-    const p = state.players[owner];
-    const src = (fromRow==="front") ? p.heroFront[fromIndex] : p.heroBack[fromIndex];
-    if(!src) return;
-    if(isHeroKO(src)){ log("戦闘不能ヒーローは入れ替え不可。"); return; }
+    if(!free){
+      if(owner!==state.active){ log("自分の手番のみ入れ替え可能。"); return; }
+      if(state.perTurn[owner].heroSwapUsed){ log("このターンは既にヒーロー入れ替え済み。"); return; }
+      if(manaAvailable(owner) < 1){ log("マナ不足（入れ替えは1マナ）。"); return; }
+    }
 
     state.heroSwap.active = true;
     state.heroSwap.owner = owner;
     state.heroSwap.fromRow = fromRow;
     state.heroSwap.fromIndex = fromIndex;
-    log("入れ替え先（反対列）を選択してください。");
+    state.heroSwap.free = !!free;
+    log(`入れ替え開始: ${owner} ${fromRow}[${fromIndex+1}]${free?"（無料）":""}`);
     render();
   }
 
-  function completeHeroSwap(owner, toRow, toIndex){
+  function completeHeroSwap(toRow, toIndex){
     if(!state.heroSwap.active) return;
-    if(owner !== state.heroSwap.owner) return;
-
+    const owner = state.heroSwap.owner;
     const fromRow = state.heroSwap.fromRow;
     const fromIndex = state.heroSwap.fromIndex;
-    if(fromRow === toRow){ log("反対列のヒーローを選択してください。"); return; }
 
-    const p = state.players[owner];
-    const srcArr = (fromRow==="front") ? p.heroFront : p.heroBack;
-    const dstArr = (toRow==="front") ? p.heroFront : p.heroBack;
-    const a = srcArr[fromIndex];
-    const b = dstArr[toIndex];
-    if(!a || !b) return;
-    if(isHeroKO(a) || isHeroKO(b)){ log("戦闘不能ヒーローとの入れ替えは不可。"); return; }
+    const fromRef = {owner, zone: fromRow, index: fromIndex};
+    const toRef   = {owner, zone: toRow,   index: toIndex};
 
-    if(manaAvailable(owner) < 1 || !tapOneMana(owner)){ log("マナ消費に失敗しました。"); return; }
+    const a = getInstByRef(fromRef);
+    const b = getInstByRef(toRef);
+    if(!a || !b){ cancelHeroSwap(); return; }
 
-    srcArr[fromIndex] = b;
-    dstArr[toIndex] = a;
-    state.perTurn[owner].heroSwapUsed = true;
+    if(isHeroKO(a) || isHeroKO(b)){ log("戦闘不能ヒーローとは入れ替えできません。"); cancelHeroSwap(); return; }
 
-    state.heroSwap = { active:false, owner:"P1", fromRow:null, fromIndex:null };
-    log("ヒーローを入れ替えました（1マナ消費）。");
+    if(!state.heroSwap.free){
+      if(!tapOneMana(owner)){ log("マナ支払いに失敗。"); cancelHeroSwap(); return; }
+      state.perTurn[owner].heroSwapUsed = true;
+    }
+
+    setInstByRef(fromRef, b);
+    setInstByRef(toRef, a);
+
+    log(`入れ替え完了: ${fromRow}[${fromIndex+1}] ⇄ ${toRow}[${toIndex+1}]`);
+    state.heroSwap = { active:false, owner:"P1", fromRow:null, fromIndex:null, free:false };
     render();
   }
 
   function cancelHeroSwap(){
     if(!state.heroSwap.active) return;
-    state.heroSwap = { active:false, owner:"P1", fromRow:null, fromIndex:null };
+    state.heroSwap = { active:false, owner:"P1", fromRow:null, fromIndex:null, free:false };
     log("入れ替えをキャンセルしました。");
     render();
   }
@@ -650,6 +991,31 @@
       const arr = state.players[ally].heroFront;
       arr.forEach((x,i)=>{ if(x && !isHeroKO(x)) push(ally, Z.HERO_F, i); });
     }
+    
+    else if(t === "enemyHeroBackOne"){
+      const enemy = (state.active==="P1") ? "P2" : "P1";
+      state.players[enemy].heroBack.forEach((x,i)=>{ if(x && !isHeroKO(x)) push(enemy, Z.HEROB, i); });
+    }else if(t === "allyHeroBackOne"){
+      const ally = state.active;
+      state.players[ally].heroBack.forEach((x,i)=>{ if(x && !isHeroKO(x)) push(ally, Z.HEROB, i); });
+    }else if(t === "enemyHeroOne"){
+      const enemy = (state.active==="P1") ? "P2" : "P1";
+      state.players[enemy].heroFront.forEach((x,i)=>{ if(x && !isHeroKO(x)) push(enemy, Z.HEROF, i); });
+      state.players[enemy].heroBack.forEach((x,i)=>{ if(x && !isHeroKO(x)) push(enemy, Z.HEROB, i); });
+    }else if(t === "allyHeroOne"){
+      const ally = state.active;
+      state.players[ally].heroFront.forEach((x,i)=>{ if(x && !isHeroKO(x)) push(ally, Z.HEROF, i); });
+      state.players[ally].heroBack.forEach((x,i)=>{ if(x && !isHeroKO(x)) push(ally, Z.HEROB, i); });
+    }else if(t === "enemyHeroesAll"){
+      const enemy = (state.active==="P1") ? "P2" : "P1";
+      state.players[enemy].heroFront.forEach((x,i)=>{ if(x && !isHeroKO(x)) push(enemy, Z.HEROF, i); });
+      state.players[enemy].heroBack.forEach((x,i)=>{ if(x && !isHeroKO(x)) push(enemy, Z.HEROB, i); });
+    }else if(t === "allyHeroesAll"){
+      const ally = state.active;
+      state.players[ally].heroFront.forEach((x,i)=>{ if(x && !isHeroKO(x)) push(ally, Z.HEROF, i); });
+      state.players[ally].heroBack.forEach((x,i)=>{ if(x && !isHeroKO(x)) push(ally, Z.HEROB, i); });
+    }
+
     return cand;
   }
 
@@ -730,6 +1096,10 @@
         if(isHeroKO(tgt)){
           tgt.tapped = true;
           log(`→ ${name} は戦闘不能（盤面に残留）。`);
+          if(targetRef.zone===Z.HEROF){
+            if(allHeroFrontKO(targetRef.owner)) forceSwapHeroRows(targetRef.owner);
+            else promptSwapOnFrontHeroKO(targetRef.owner, targetRef.index);
+          }
         }
       }else{
         log("この対象へのdamageは未対応です。");
@@ -746,6 +1116,10 @@
         tgt._lp = 0;
         tgt.tapped = true;
         log(`→ ${name} を戦闘不能にしました（盤面残留）。`);
+        if(targetRef.zone===Z.HEROF){
+          if(allHeroFrontKO(targetRef.owner)) forceSwapHeroRows(targetRef.owner);
+          else promptSwapOnFrontHeroKO(targetRef.owner, targetRef.index);
+        }
       }else{
         log("この対象へのdestroyは未対応です。");
       }
@@ -1126,7 +1500,15 @@
         }else if(act==="cancelSwap"){
           cancelHeroSwap();
           closeModal();
-        }else if(act==="testKO"){
+                }else if(act==="koSwapYes"){
+          const info = state._koSwap;
+          state._koSwap = null;
+          closeModal();
+          if(info){ beginHeroSwap(info.owner, Z.HEROF, info.deadIndex, true); }
+        }else if(act==="koSwapNo"){
+          state._koSwap = null;
+          closeModal();
+}else if(act==="testKO"){
           inst._lp = 0;
           inst.tapped = true;
           log("（テスト）ヒーローを戦闘不能にしました。");
@@ -1159,7 +1541,30 @@
 
   // ---------- Events ----------
   function bind(){
-    dom.btnSetup.addEventListener("click", setupDemo);
+    dom.btnSetup.addEventListener("click", openNewDuelFlow);
+    if(dom.flowClose) dom.flowClose.addEventListener("click", ()=>{ showFlow(false); });
+
+    // Flow event delegation
+    if(dom.flowBody){
+      dom.flowBody.addEventListener("click", (ev)=>{
+        const t = ev.target;
+        if(!(t instanceof HTMLElement)) return;
+        const id = t.getAttribute("data-id");
+        const act = t.getAttribute("data-flow");
+
+        if(t.id==="flowDeckClear"){ flow.selectedHeroIds=[]; flow.frontIds=[]; flow.backIds=[]; renderFlowDeck(); return; }
+        if(t.id==="flowDeckNext"){ renderFlowPlacement(); return; }
+        if(t.id==="flowPlaceBack"){ renderFlowDeck(); return; }
+        if(t.id==="flowPlaceNext"){ renderFlowCoin(); return; }
+        if(t.id==="flowCoinBack"){ renderFlowPlacement(); return; }
+        if(t.id==="flowToss"){ tossCoin(); return; }
+        if(t.id==="flowStartDuel"){ setupDuelFromSelection(); return; }
+
+        if(act==="toggleHero" && id){ flowToggleHero(id); return; }
+        if(act==="setFront" && id){ flowSetFront(id); return; }
+        if(act==="setBack" && id){ flowSetBack(id); return; }
+      });
+    }
     dom.btnReset.addEventListener("click", resetGame);
     dom.btnEndTurn.addEventListener("click", endTurn);
 
@@ -1182,6 +1587,7 @@
     dom.jsStatus.textContent = `JS ready (${VERSION})`;
     bind();
     await loadDefs();
+    openNewDuelFlow();
     render();
   }
 
