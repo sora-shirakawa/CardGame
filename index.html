@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
-<title>Card Game Prototype — v38</title>
+<title>Card Game Prototype — v39</title>
 <style>
   :root{
     --bg:#0b1020;
@@ -16,50 +16,64 @@
     --bad:#7f1d1d;
     --shadow:0 10px 30px rgba(0,0,0,.35);
     --radius:16px;
-    --hi:rgba(120,200,255,.70);
-    --hi2:rgba(250,204,21,.70);
   }
   *{box-sizing:border-box}
-  body{
-    margin:0;
-    background:
+  body{margin:0;background:
       radial-gradient(1200px 600px at 40% -10%, rgba(125,211,252,.16), transparent),
       radial-gradient(900px 600px at 90% 10%, rgba(250,204,21,.10), transparent),
       var(--bg);
-    color:var(--text);
-    font-family: system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans JP", sans-serif;
+      color:var(--text);
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans JP", sans-serif;
   }
-  header{
-    position:sticky; top:0; z-index:60;
-    backdrop-filter: blur(10px);
-    background:linear-gradient(to bottom, rgba(11,16,32,.92), rgba(11,16,32,.68));
-    border-bottom:1px solid var(--line);
-  }
-  #jsStatus{
-    background:var(--bad); color:#fff;
-    padding:10px 12px; font-weight:900; font-size:13px;
-    border-bottom:1px solid rgba(255,255,255,.12);
-  }
+
+  #jsStatus{position:sticky;top:0;z-index:9999;background:var(--bad);color:#fff;padding:10px 12px;font-weight:900;font-size:13px;border-bottom:1px solid rgba(255,255,255,.12)}
+  header{position:sticky;top:44px;z-index:50;backdrop-filter: blur(10px);
+          background:linear-gradient(to bottom, rgba(11,16,32,.92), rgba(11,16,32,.68));
+          border-bottom:1px solid var(--line);}
   .bar{display:flex;gap:10px;align-items:center;justify-content:space-between; padding:10px 12px; flex-wrap:wrap}
   .title{font-weight:900}
   .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-  button{
-    appearance:none;border:1px solid var(--line);background:var(--panel);color:var(--text);
-    padding:9px 12px;border-radius:12px;font-weight:800;cursor:pointer
-  }
+  button{appearance:none;border:1px solid var(--line);background:var(--panel);color:var(--text);
+          padding:9px 12px;border-radius:12px;font-weight:800;cursor:pointer}
   button:disabled{opacity:.45;cursor:not-allowed}
   button.primary{border-color:rgba(125,211,252,.35); box-shadow:0 0 0 1px rgba(125,211,252,.06) inset}
-  button.warn{border-color:rgba(250,204,21,.45); background:rgba(250,204,21,.12)}
   .chip{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;background:rgba(255,255,255,.10);border:1px solid var(--line);font-size:12px}
-  .wrap{display:grid;grid-template-columns: 1.55fr .45fr; gap:12px; padding:12px; max-width:1200px; margin:0 auto}
+
+  .wrap{
+    display:grid;
+    grid-template-columns: 1.45fr .55fr;
+    gap:12px; padding:12px;
+    max-width:1200px; margin:0 auto
+  }
   @media (max-width: 980px){ .wrap{grid-template-columns:1fr} }
 
   .panel{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); box-shadow: var(--shadow);}
   .panel h2{margin:0;padding:12px 12px 0 12px;font-size:14px;opacity:.95}
   .panel .inner{padding:12px}
 
-  .zoneTitle{display:flex;align-items:center;justify-content:space-between;gap:10px}
-  .small{font-size:12px;color:var(--muted)}
+  .fieldGrid{
+    display:grid;
+    grid-template-columns: 1fr 260px;
+    gap:12px;
+    align-items:start;
+  }
+  @media (max-width: 980px){ .fieldGrid{grid-template-columns:1fr} }
+
+  .stack{display:flex;flex-direction:column;gap:10px}
+
+  .zoneBox{
+    padding:10px 12px;
+    border-radius:14px;
+    border:1px solid rgba(255,255,255,.14);
+    background:rgba(255,255,255,.04);
+  }
+  .zoneHead{
+    display:flex;align-items:center;justify-content:space-between;
+    gap:10px;margin-bottom:8px
+  }
+  .zoneTitle{font-weight:900}
+  .zoneNote{font-size:12px;color:var(--muted)}
+  .hr{height:1px;background:var(--line);margin:10px 0}
 
   .slotRow{display:flex;gap:10px;flex-wrap:wrap}
   .slotRow.nowrap{flex-wrap:nowrap;overflow-x:auto;padding-bottom:6px}
@@ -68,236 +82,198 @@
   .slotRow.nowrap::-webkit-scrollbar-track{background:rgba(255,255,255,.06);border-radius:999px}
 
   .slot{
-    width:170px; min-width:170px;
-    height:92px; border-radius:14px;
-    border:1px dashed rgba(255,255,255,.18);
-    display:flex;align-items:center;justify-content:center;
-    color:rgba(255,255,255,.55);
-    background:rgba(255,255,255,.03)
-  }
-  .card{
-    width:170px; min-width:170px;
-    background:linear-gradient(to bottom, rgba(255,255,255,.08), rgba(255,255,255,.04));
-    border:1px solid var(--line);
+    width:170px; height:92px;
     border-radius:14px;
-    padding:10px;
-    cursor:pointer;
-    position:relative;
+    border:1px dashed rgba(255,255,255,.18);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    color:rgba(255,255,255,.60);
+    background:rgba(255,255,255,.03);
+    padding:8px;
+    text-align:center;
     user-select:none;
   }
-  .card .name{font-weight:900;font-size:13px;line-height:1.2}
-  .meta{margin-top:6px;font-size:12px;color:var(--muted);line-height:1.3}
-  .badges{position:absolute;top:8px;right:8px;display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
-  .badge{font-size:11px;padding:3px 8px;border-radius:999px;background:rgba(255,255,255,.10);border:1px solid var(--line)}
-  .badge.info{background:rgba(29,78,216,.20);border-color:rgba(29,78,216,.45)}
-  .badge.warn{background:rgba(124,45,18,.35);border-color:rgba(124,45,18,.6)}
-  .badge.bad{background:rgba(127,29,29,.35);border-color:rgba(127,29,29,.65)}
-  .badge.ok{background:rgba(20,83,45,.35);border-color:rgba(20,83,45,.60)}
-
-  .cardActions{margin-top:8px;display:flex;gap:6px;flex-wrap:wrap}
-  .miniBtn{padding:6px 8px;border-radius:10px;font-size:12px;font-weight:900}
-  .miniBtn.swap{border-color:rgba(250,204,21,.55);background:rgba(250,204,21,.12)}
-
-  .selectable{outline:2px solid var(--hi); box-shadow:0 0 0 4px rgba(60,120,200,.18) inset;}
-  .swapSource{outline:2px solid var(--hi2); box-shadow:0 0 0 4px rgba(250,204,21,.14) inset;}
-  .dim{opacity:.55}
-
-  .heroGrid{display:grid;grid-template-columns: 1fr;gap:10px;}
-  .heroRow{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-start;}
-  .heroRowLabel{
-    width:100%;
-    font-weight:900;
-    font-size:12px;
-    color:rgba(255,255,255,.85);
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
+  .slot.fill{border-style:solid;background:rgba(255,255,255,.05); cursor:pointer}
+  .slot .t{font-weight:900;font-size:13px;line-height:1.2}
+  .slot .m{font-size:12px;color:rgba(255,255,255,.78);margin-top:6px;line-height:1.2}
+  .slot .b{font-size:12px;color:rgba(255,255,255,.72);margin-top:4px;line-height:1.2}
+  .slot .tag{
+    display:inline-block;margin-top:6px;
+    font-size:11px;padding:3px 8px;border-radius:999px;
+    background:rgba(255,255,255,.10);border:1px solid var(--line)
   }
+  .slot .tag.down{background:rgba(29,78,216,.20);border-color:rgba(29,78,216,.45)}
 
-  /* target bar */
-  #targetBar{
-    display:none;
-    position:sticky;
-    top:0;
-    z-index:55;
-    margin:8px 12px 0;
-    padding:10px 12px;
-    border-radius:14px;
-    background:rgba(20,40,70,.92);
-    border:1px solid rgba(255,255,255,.14);
-    gap:10px;
-    align-items:center;
-    justify-content:space-between;
-  }
-  #targetBar .msg{font-weight:900}
-  #targetBar .sub{opacity:.85;font-size:12px}
+  /* Heroes: vertical two rows (back over front) */
+  .heroBlock{display:flex;flex-direction:column;gap:10px}
+  .heroRowTitle{font-size:12px;color:var(--muted);font-weight:800;margin-bottom:6px}
+  .heroRow{display:flex;flex-wrap:wrap;gap:10px}
+  .heroRow.nowrap{flex-wrap:nowrap;overflow-x:auto;padding-bottom:6px}
 
-  /* modal */
+  /* Modal */
   #modalBackdrop{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;z-index:100}
   #modal{width:min(860px, 94vw); max-height: 90vh; overflow:auto; background:rgba(12,18,36,.92); border:1px solid var(--line);
           border-radius:18px; box-shadow:0 20px 60px rgba(0,0,0,.6)}
   .modalHead{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px;border-bottom:1px solid var(--line)}
   .modalHead .h{font-weight:900}
   .modalBody{padding:12px}
-  .hr{height:1px;background:var(--line);margin:10px 0}
-
-  textarea#log{
-    width:100%; min-height:240px;
-    background:rgba(0,0,0,.22);
-    color:#fff;
-    border:1px solid rgba(255,255,255,.15);
-    border-radius:14px;
-    padding:10px;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-    font-size:12px;
-    resize:vertical;
-  }
-
-  @media (max-width: 520px){
-    .bar{flex-direction:column;align-items:stretch}
-    .bar .row{justify-content:flex-start}
-    .bar button{flex:1}
-    .slot,.card{width:160px; min-width:160px}
-  }
-
-  /* --- Flow (deck -> placement -> coin toss) --- */
-  .flowBackdrop{position:fixed;inset:0;z-index:150;background:rgba(0,0,0,.62);display:none;align-items:center;justify-content:center;padding:16px}
-  .flowPanel{width:min(980px, 96vw);max-height:92vh;overflow:auto;background:rgba(12,18,36,.96);border:1px solid var(--line);
-    border-radius:18px;box-shadow:0 20px 70px rgba(0,0,0,.65)}
-  .flowHead{position:sticky;top:0;z-index:10;display:flex;align-items:center;justify-content:space-between;gap:10px;
-    padding:12px 14px;border-bottom:1px solid var(--line);background:linear-gradient(to bottom, rgba(12,18,36,.98), rgba(12,18,36,.86))}
-  .flowTitle{font-weight:900}
-  .flowBody{padding:14px
-    max-height: calc(90vh - 90px);
-    overflow:auto;
-}
-  .flowGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-  @media (max-width:720px){.flowGrid{grid-template-columns:1fr}}
-  .flowCard{border:1px solid var(--line);background:rgba(255,255,255,.05);border-radius:14px;padding:10px;display:flex;gap:10px;justify-content:space-between;align-items:center}
-  .flowCard .n{font-weight:900}
-  .flowCard .m{font-size:12px;color:var(--muted);margin-top:4px}
-  .flowActions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
-  .flowHint{font-size:12px;color:var(--muted);line-height:1.5}
-  .flowTopRow{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:space-between;margin-bottom:10px}
+  .actionsRow{display:flex;gap:8px;flex-wrap:wrap}
   .pill{border-radius:999px;padding:8px 12px}
-  .pill.on{outline:2px solid rgba(120,200,255,.55)}
+
+  /* Right rail boxes (確認) */
+  .checkBox{padding:10px 12px;border-radius:14px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.04)}
+  .checkBox .k{font-weight:900}
+  .checkBox .v{margin-top:6px;font-size:12px;color:var(--muted)}
+  .muted{color:var(--muted)}
 </style>
 </head>
 <body>
-<div id="jsStatus">JS未起動 (v38)</div>
-<noscript><div style="background:#b45309;color:#fff;padding:10px 12px;font-weight:800">JavaScriptが無効です（noscript）</div></noscript>
+<div id="jsStatus">JS未起動（v39）</div>
 
-<div id="flowBackdrop" class="flowBackdrop">
-  <div class="flowPanel">
-    <div class="flowHead">
-      <div>
-        <div id="flowTitle" class="flowTitle">準備中</div>
-        <div id="flowSub" class="flowHint"></div>
-      </div>
-      <div class="row">
-        <span id="flowStepChip" class="chip">STEP</span>
-        <button id="flowClose" class="pill">閉じる</button>
-      </div>
-    </div>
-    <div id="flowBody" class="flowBody"></div>
-  </div>
-</div>
-
-<div id="mainApp" style="display:none">
 <header>
   <div class="bar">
     <div class="row">
       <div class="title">Card Game Prototype</div>
-      <span class="chip" id="phaseChip">PHASE: MAIN</span>
-      <span class="chip" id="turnChip">TURN: 1 / Active: P1</span>
-      <span class="chip" id="manaChip">P1 Mana: 0 (0 untapped)</span>
+      <span class="chip" id="chipPhase">PHASE: -</span>
+      <span class="chip" id="chipTurn">TURN: -</span>
+      <span class="chip" id="chipActive">Active: -</span>
+      <span class="chip" id="chipMana">P1 Mana: -</span>
     </div>
     <div class="row">
-      <button id="btnNewDuel">新規デュエル</button>
-      <button class="primary" id="btnSetup">デモセットアップ</button>
+      <button class="primary" id="btnDemo">デモセットアップ</button>
       <button id="btnReset">リセット</button>
-      <button id="btnEndTurn">ターン終了</button>
+      <button id="btnPhase">フェイズ</button>
+      <button id="btnEnd">ターン終了</button>
     </div>
   </div>
 </header>
 
-<div id="targetBar">
-  <div>
-    <div class="msg" id="targetMsg">対象を選択してください</div>
-    <div class="sub" id="targetSub">Escでキャンセル</div>
-  </div>
-  <div class="row">
-    <button class="warn" id="btnCancelTarget">キャンセル</button>
-  </div>
-</div>
-
 <div class="wrap">
   <div class="panel">
     <h2>フィールド</h2>
-    <div class="inner">
+    <div class="inner fieldGrid">
+      <div class="stack">
 
-      <div class="panel" style="margin-bottom:12px">
-        <h2>相手フィールド（P2：ミラー）</h2>
-        <div class="inner">
-          <div class="zoneTitle"><div style="font-weight:900">サポート・魔法</div><div class="small">最大7</div></div>
-          <div class="slotRow nowrap" id="supportP2"></div>
-          <div class="hr"></div>
+        <!-- Opponent -->
+        <div class="zoneBox">
+          <div class="zoneHead">
+            <div class="zoneTitle">相手フィールド（P2・ミラー）</div>
+            <div class="zoneNote">常時表示</div>
+          </div>
 
-          <div class="zoneTitle"><div style="font-weight:900">インスタンス</div><div class="small">最大5（伏せ）</div></div>
-          <div class="slotRow nowrap" id="instanceP2"></div>
-          <div class="hr"></div>
+          <div class="stack">
+            <div>
+              <div class="zoneHead"><div class="zoneTitle">サポート・魔法</div><div class="zoneNote">最大10</div></div>
+              <div class="slotRow nowrap" id="p2Sup"></div>
+            </div>
 
-          <div class="zoneTitle"><div style="font-weight:900">ヒーロー（前衛/後衛）</div><div class="small">前後衛は可変（最低各1）</div></div>
-          <div class="heroGrid" id="heroP2"></div>
-          <div class="hr"></div>
+            <div>
+              <div class="zoneHead"><div class="zoneTitle">インスタンス</div><div class="zoneNote">最大5（伏せ）</div></div>
+              <div class="slotRow nowrap" id="p2Inst"></div>
+            </div>
 
-          <div class="zoneTitle"><div style="font-weight:900">モンスター</div><div class="small">最大7</div></div>
-          <div class="slotRow nowrap" id="monsterP2"></div>
+            <div>
+              <div class="zoneHead"><div class="zoneTitle">ヒーロー（前衛／後衛）</div><div class="zoneNote">各最大3／最低各1</div></div>
+              <div class="heroBlock">
+                <div>
+                  <div class="heroRowTitle">後衛</div>
+                  <div class="heroRow nowrap" id="p2HeroBack"></div>
+                </div>
+                <div>
+                  <div class="heroRowTitle">前衛</div>
+                  <div class="heroRow nowrap" id="p2HeroFront"></div>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <div class="zoneHead"><div class="zoneTitle">モンスター</div><div class="zoneNote">最大10</div></div>
+              <div class="slotRow nowrap" id="p2Mon"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="hr"></div>
+
+        <!-- Self -->
+        <div class="zoneBox">
+          <div class="zoneHead">
+            <div class="zoneTitle">自分フィールド（P1）</div>
+            <div class="zoneNote">モンスター/サポートは横スクロール</div>
+          </div>
+
+          <div class="stack">
+            <div>
+              <div class="zoneHead"><div class="zoneTitle">モンスター</div><div class="zoneNote">最大10</div></div>
+              <div class="slotRow nowrap" id="p1Mon"></div>
+            </div>
+
+            <div>
+              <div class="zoneHead"><div class="zoneTitle">ヒーロー（前衛／後衛）</div><div class="zoneNote">入れ替え: 1ターン1回/1マナ（戦闘不能は対象外）</div></div>
+              <div class="heroBlock">
+                <div>
+                  <div class="heroRowTitle">前衛</div>
+                  <div class="heroRow nowrap" id="p1HeroFront"></div>
+                </div>
+                <div>
+                  <div class="heroRowTitle">後衛</div>
+                  <div class="heroRow nowrap" id="p1HeroBack"></div>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <div class="zoneHead"><div class="zoneTitle">インスタンス</div><div class="zoneNote">最大5（相手から非公開／発動時のみ公開）</div></div>
+              <div class="slotRow nowrap" id="p1Inst"></div>
+            </div>
+
+            <div>
+              <div class="zoneHead"><div class="zoneTitle">サポート・魔法</div><div class="zoneNote">最大10</div></div>
+              <div class="slotRow nowrap" id="p1Sup"></div>
+            </div>
+
+            <div>
+              <div class="zoneHead"><div class="zoneTitle">手札（P1）</div><div class="zoneNote">最大10（エンドまで枚数制限なし運用は後で実装）</div></div>
+              <div class="slotRow nowrap" id="p1Hand"></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Right rail: check + log -->
+      <div class="stack">
+        <div class="checkBox">
+          <div class="k">現在のターン数</div>
+          <div class="v" id="boxTurn">-</div>
+        </div>
+        <div class="checkBox">
+          <div class="k">現在のフェイズ</div>
+          <div class="v" id="boxPhase">-</div>
+        </div>
+        <div class="checkBox">
+          <div class="k">ログ（スクロール）</div>
+          <div class="v muted">操作ログ（簡易）</div>
+          <pre id="log" style="white-space:pre-wrap;margin:8px 0 0 0;max-height:38vh;overflow:auto"></pre>
+        </div>
+        <div class="checkBox">
+          <div class="k">相手墓地確認</div><div class="v muted">（後でUI実装）</div>
+        </div>
+        <div class="checkBox">
+          <div class="k">相手除外ゾーン確認</div><div class="v muted">（後でUI実装）</div>
+        </div>
+        <div class="checkBox">
+          <div class="k">自分墓地確認</div><div class="v muted">（後でUI実装）</div>
+        </div>
+        <div class="checkBox">
+          <div class="k">自分除外ゾーン確認</div><div class="v muted">（後でUI実装）</div>
         </div>
       </div>
 
-      <div class="panel">
-        <h2>自分フィールド（P1）</h2>
-        <div class="inner">
-          <div class="zoneTitle"><div style="font-weight:900">モンスター</div><div class="small">最大7</div></div>
-          <div class="slotRow nowrap" id="monsterP1"></div>
-          <div class="hr"></div>
-
-          <div class="zoneTitle"><div style="font-weight:900">ヒーロー（前衛/後衛）</div><div class="small">入れ替え：1ターン1回/1マナ（戦闘不能は対象外）</div></div>
-          <div class="heroGrid" id="heroP1"></div>
-          <div class="hr"></div>
-
-          <div class="zoneTitle"><div style="font-weight:900">インスタンス</div><div class="small">最大5（相手から非公開／発動時のみ公開）</div></div>
-          <div class="slotRow nowrap" id="instanceP1"></div>
-          <div class="hr"></div>
-
-          <div class="zoneTitle"><div style="font-weight:900">サポート・魔法</div><div class="small">最大7</div></div>
-          <div class="slotRow nowrap" id="supportP1"></div>
-
-          <div class="hr"></div>
-          <div class="zoneTitle"><div style="font-weight:900">手札（P1）</div><div class="small">クリックで詳細／発動で対象選択</div></div>
-          <div class="slotRow nowrap" id="handP1"></div>
-        </div>
-      </div>
-
-    </div>
-  </div>
-
-  <div class="panel">
-    <h2>ログ</h2>
-    <div class="inner">
-      <textarea id="log" readonly></textarea>
-      <div class="hr"></div>
-      <div class="small">
-        v28: 「対象選択（ターゲット）」UIを追加。<br/>
-        対応target: enemyMonsterOne / allyMonsterOne / enemyHeroFrontOne / allyHeroFrontOne<br/>
-        対応action(暫定): damage / destroy（destroyはHP=0扱い）<br/>
-        ※本格的な戦闘/永続/優先権は次段階。
-      </div>
     </div>
   </div>
 </div>
 
+<!-- Modal -->
 <div id="modalBackdrop">
   <div id="modal">
     <div class="modalHead">
@@ -309,91 +285,34 @@
 </div>
 
 <script>
-
 (() => {
   "use strict";
-  const VERSION = "v38";
-  const $ = (id) => document.getElementById(id);
-  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (m) => ({ "&":"&amp;","<":"&lt;",">":"&gt;", "\"":"&quot;","'":"&#39;" }[m]));
-  const now = () => new Date().toLocaleTimeString();
+  const VERSION = "v39";
 
-  const dom = {
-    jsStatus: $("jsStatus"),
-    mainApp: $("mainApp"),
-    flowBackdrop: $("flowBackdrop"),
-    flowTitle: $("flowTitle"),
-    flowSub: $("flowSub"),
-    flowStepChip: $("flowStepChip"),
-    flowBody: $("flowBody"),
-    flowRoot: $("flowRoot"),
-    flowClose: $("flowClose"),
-    phaseChip: $("phaseChip"),
-    turnChip: $("turnChip"),
-    manaChip: $("manaChip"),
-    btnSetup: $("btnSetup"),
-    btnNewDuel: $("btnNewDuel"),
-    btnReset: $("btnReset"),
-    btnEndTurn: $("btnEndTurn"),
-    log: $("log"),
-
-    monsterP1: $("monsterP1"),
-    heroP1: $("heroP1"),
-    instanceP1: $("instanceP1"),
-    supportP1: $("supportP1"),
-    handP1: $("handP1"),
-
-    monsterP2: $("monsterP2"),
-    heroP2: $("heroP2"),
-    instanceP2: $("instanceP2"),
-    supportP2: $("supportP2"),
-
-    modalBackdrop: $("modalBackdrop"),
-    modalTitle: $("modalTitle"),
-    modalBody: $("modalBody"),
-    btnCloseModal: $("btnCloseModal"),
-
-    targetBar: $("targetBar"),
-    targetMsg: $("targetMsg"),
-    targetSub: $("targetSub"),
-    btnCancelTarget: $("btnCancelTarget"),
-  };
-
-  function log(msg){
-    dom.log.value += `[${now()}] ${msg}\n`;
-    dom.log.scrollTop = dom.log.scrollHeight;
-  }
-
-  function normType(d){
-    const t = String(d.cardType ?? d.type ?? "").toLowerCase();
-    if(t === "magic" || t === "spell") return "SPELL";
-    if(t === "support") return "SUPPORT";
-    if(t === "monster") return "MONSTER";
-    if(t === "hero") return "HERO";
-    if(t === "instance") return "INSTANCE";
-    const u = String(d.cardType ?? "").toUpperCase();
-    if(["SPELL","SUPPORT","MONSTER","HERO","INSTANCE"].includes(u)) return u;
-    return "UNKNOWN";
-  }
+  const $ = (id)=>document.getElementById(id);
+  const esc = (s)=>String(s??"").replace(/[&<>"']/g, m => ({ "&":"&amp;","<":"&lt;",">":"&gt;", "\"":"&quot;","'":"&#39;" }[m]));
+  const now = ()=>new Date().toLocaleTimeString();
 
   const Z = {
-    MON: "monster",
-    HERO_F: "heroFront",
-    HERO_B: "heroBack",
-    INST: "instance",
-    SUP: "support",
-    HAND: "hand",
-    MANA: "mana",
-    GRAVE: "grave",
-    BANISH: "banish",
+    MON:"monster",
+    HERO_F:"heroFront",
+    HERO_B:"heroBack",
+    INST:"instance",
+    SUP:"support",
+    HAND:"hand",
+    MANA:"mana",
+    GRAVE:"grave",
+    BANISH:"banish",
   };
+  const PHASES = ["DRAW","MAIN","BATTLE","END"];
 
   function makeEmptyPlayer(){
     return {
-      monster: new Array(7).fill(null),
-      support: new Array(7).fill(null),
-      instance: new Array(5).fill(null),
-      heroFront: [],
-      heroBack: [],
+      monster: Array(10).fill(null),
+      heroFront: Array(3).fill(null),
+      heroBack: Array(3).fill(null),
+      instance: Array(5).fill(null),
+      support: Array(10).fill(null),
       hand: [],
       mana: [],
       grave: [],
@@ -401,757 +320,165 @@
     };
   }
 
+  function uid(){ return Math.random().toString(36).slice(2) + Date.now().toString(36); }
   function makeCardInst(id, owner){
-    return {
-      uid: `${owner}_${id}_${Math.random().toString(36).slice(2,9)}`,
-      id, owner,
-      faceDown: false,
-      tapped: false,
-      summonSick: false,
-      _lp: null,
-      _hp: null,
-    };
+    return { uid: uid(), id, owner, zone:"", faceDown:false, tapped:false, summonSick:false, _lp:null };
   }
 
   const state = {
     defsById: new Map(),
-    defsLoaded: false,
-    turn: 1,
-    active: "P1",
-    phase: "MAIN",
-    perTurn: {
-      P1: { heroSwapUsed:false },
-      P2: { heroSwapUsed:false },
-    },
-    players: {
-      P1: makeEmptyPlayer(),
-      P2: makeEmptyPlayer(),
-    },
+    defsLoaded:false,
 
-    heroSwap: { active:false, owner:"P1", fromRow:null, fromIndex:null, free:false },
+    turn:1,
+    active:"P1",
+    phase:"MAIN",
+    perTurn:{ P1:{manaSet:false, heroSwap:false}, P2:{manaSet:false, heroSwap:false} },
 
-    targeting: {
-      active:false,
-      owner:"P1",
-      sourceRef:null,
-      effect:null,
-      candidates: [],
-      prompt:"",
-    }
+    players:{ P1:makeEmptyPlayer(), P2:makeEmptyPlayer() },
+    modal:{ open:false, ref:null }
   };
 
-  function defOf(inst){ return inst ? (state.defsById.get(inst.id) ?? null) : null; }
+  const dom = {};
 
-  function ensureStats(inst){
-    const d = defOf(inst);
-    if(!d) return;
-    const type = normType(d);
-    if(type==="HERO"){
-      if(inst._lp == null) inst._lp = Number(d.lp ?? 5);
-    }
-    if(type==="MONSTER"){
-      if(inst._hp == null) inst._hp = Number(d.hp ?? 0);
+  function log(msg){
+    const el = dom.log;
+    if(!el) return;
+    el.textContent = (el.textContent + msg + "\n").slice(-12000);
+    el.scrollTop = el.scrollHeight;
+  }
+
+  function updateJsStatus(ok){
+    const el = $("jsStatus");
+    if(!el) return;
+    if(ok){
+      el.textContent = `JS ready (${VERSION})`;
+      el.style.background = "var(--good)";
+    }else{
+      el.textContent = `JS未起動（${VERSION}）`;
+      el.style.background = "var(--bad)";
     }
   }
+
+  function cacheDom(){
+    dom.p1Mon = $("p1Mon");
+    dom.p1HeroFront = $("p1HeroFront");
+    dom.p1HeroBack = $("p1HeroBack");
+    dom.p1Inst = $("p1Inst");
+    dom.p1Sup = $("p1Sup");
+    dom.p1Hand = $("p1Hand");
+
+    dom.p2Mon = $("p2Mon");
+    dom.p2HeroFront = $("p2HeroFront");
+    dom.p2HeroBack = $("p2HeroBack");
+    dom.p2Inst = $("p2Inst");
+    dom.p2Sup = $("p2Sup");
+
+    dom.chipPhase = $("chipPhase");
+    dom.chipTurn = $("chipTurn");
+    dom.chipActive = $("chipActive");
+    dom.chipMana = $("chipMana");
+
+    dom.boxTurn = $("boxTurn");
+    dom.boxPhase = $("boxPhase");
+
+    dom.log = $("log");
+
+    dom.btnDemo = $("btnDemo");
+    dom.btnReset = $("btnReset");
+    dom.btnPhase = $("btnPhase");
+    dom.btnEnd = $("btnEnd");
+
+    dom.modalBackdrop = $("modalBackdrop");
+    dom.modalTitle = $("modalTitle");
+    dom.modalBody = $("modalBody");
+    dom.btnCloseModal = $("btnCloseModal");
+  }
+
+  // cards.json can be array OR {cards:[...]}
+  async function loadDefs(){
+    try{
+      const url = "cards.json?t=" + Date.now();
+      const res = await fetch(url, {cache:"no-store"});
+      if(!res.ok) throw new Error("cards.json status: " + res.status);
+      const j = await res.json();
+      const arr = Array.isArray(j) ? j : (Array.isArray(j.cards) ? j.cards : null);
+      if(!arr) throw new Error("cards.json format invalid (expected array or {cards:[..]})");
+      const map = new Map();
+      for(const d of arr){
+        if(d && d.id) map.set(d.id, normalizeDef(d));
+      }
+      state.defsById = map;
+      state.defsLoaded = true;
+      log(`cards.json loaded (${map.size} cards)`);
+      return true;
+    }catch(e){
+      state.defsLoaded = false;
+      log("cards.json 読み込み失敗: " + (e?.message || e));
+      // minimal fallback
+      const fallback = [
+        {id:"H_FB", name:"フォールバック先導者", cardType:"HERO", lp:5, rarity:"N"},
+        {id:"M_FB", name:"フォールバック兵", cardType:"MONSTER", subType:"S", cost:1, atk:100, hp:200, rarity:"N"},
+        {id:"SP_FB", name:"フォールバック魔法", cardType:"SPELL", cost:1, rarity:"N"},
+        {id:"SU_FB", name:"フォールバック支援", cardType:"SUPPORT", cost:1, lp:1, rarity:"N"},
+        {id:"IN_FB", name:"フォールバック・インスタンス", cardType:"INSTANCE", rarity:"N"},
+      ];
+      state.defsById = new Map(fallback.map(x=>[x.id,x]));
+      return false;
+    }
+  }
+
+  // Accept your schema: type: hero/monster/magic/support/instance
+  function normalizeDef(d){
+    const t = String(d.cardType ?? d.type ?? "").toLowerCase();
+    if(t==="hero") return {...d, cardType:"HERO"};
+    if(t==="monster") return {...d, cardType:"MONSTER"};
+    if(t==="magic" || t==="spell") return {...d, cardType:"SPELL"};
+    if(t==="support") return {...d, cardType:"SUPPORT"};
+    if(t==="instance") return {...d, cardType:"INSTANCE"};
+    // already normalized?
+    const up = String(d.cardType||"").toUpperCase();
+    if(["HERO","MONSTER","SPELL","SUPPORT","INSTANCE"].includes(up)) return d;
+    return {...d, cardType:String(d.cardType||d.type||"UNKNOWN").toUpperCase()};
+  }
+
+  function defOf(inst){ return inst ? (state.defsById.get(inst.id) || null) : null; }
 
   function manaAvailable(owner){
-    return state.players[owner].mana.reduce((acc,c)=>acc + (!c.tapped ? 1 : 0), 0);
+    let n=0;
+    for(const c of state.players[owner].mana){
+      if(c && !c.tapped) n++;
+    }
+    return n;
   }
-  function manaTotal(owner){ return state.players[owner].mana.length; }
-  function tapOneMana(owner){
-    const c = state.players[owner].mana.find(x=>x && !x.tapped);
-    if(!c) return false;
-    c.tapped = true;
-    return true;
-  }
+
   function untapAllMana(owner){
     for(const c of state.players[owner].mana){ if(c) c.tapped=false; }
   }
 
-  function isHeroKO(heroInst){
-    if(!heroInst) return false;
-    ensureStats(heroInst);
-    return Number(heroInst._lp ?? 0) <= 0;
-  }
-
-  function anyAliveHeroInRow(owner, row){
-    const p = state.players[owner];
-    const arr = (row===Z.HEROF) ? p.heroFront : p.heroBack;
-    return arr.some(h => h && !isHeroKO(h));
-  }
-  function allHeroFrontKO(owner){
-    const p = state.players[owner];
-    const front = p.heroFront.filter(Boolean);
-    if(front.length===0) return true;
-    return front.every(h => isHeroKO(h));
-  }
-  function forceSwapHeroRows(owner){
-    const p = state.players[owner];
-    const tmp = p.heroFront;
-    p.heroFront = p.heroBack;
-    p.heroBack = tmp;
-    log(`${owner}: 前衛ヒーローが全滅したため、前後衛を強制入れ替え。`);
-  }
-  function promptSwapOnFrontHeroKO(owner, deadIndex){
-    if(!anyAliveHeroInRow(owner, Z.HEROB)) return;
-    state._koSwap = {owner, deadIndex};
-    openModal(
-      "前衛ヒーロー戦闘不能",
-      `<div class="small">前衛ヒーローが倒れました。後衛と入れ替えますか？（コスト無し）</div>
-       <div class="hr" style="margin:12px 0"></div>
-       <div class="actionsRow">
-         <button class="primary" data-act="koSwapYes">入れ替える</button>
-         <button data-act="koSwapNo">そのまま</button>
-       </div>`
-    );
-  }
-  function isMonsterDead(monInst){
-    if(!monInst) return false;
-    ensureStats(monInst);
-    return Number(monInst._hp ?? 0) <= 0;
-  }
-
-  
-  function ensureMinHeroes(min=4){
-    const heroes = getAllHeroes();
-    if(heroes.length >= min) return;
-    const base = heroes[0] || { id:"H_AUTO_BASE", name:"仮ヒーロー", type:"hero", lp:5, rarity:"N", text:"（仮）" };
-    for(let i=heroes.length;i<min;i++){
-      const id = `H_AUTO_${String(i+1).padStart(3,"0")}`;
-      if(state.defsById.has(id)) continue;
-      const d = JSON.parse(JSON.stringify(base));
-      d.id = id;
-      d.name = (base.name ? base.name : "仮ヒーロー") + `（自動${i+1}）`;
-      d.type = "hero";
-      d.cardType = "HERO";
-      if(d.lp==null) d.lp = 5;
-      if(!Array.isArray(d.tags)) d.tags = ["英雄"];
-      state.defsById.set(id, d);
+  function tapMana(owner, n){
+    let need=n;
+    for(const c of state.players[owner].mana){
+      if(need<=0) break;
+      if(c && !c.tapped){ c.tapped=true; need--; }
     }
-  }
-async function loadDefs(){
-    try{
-      const url = new URL("cards.json", location.href);
-      url.searchParams.set("t", Date.now());
-      const res = await fetch(url.toString(), { cache:"no-store" });
-      if(!res.ok) throw new Error("cards.json fetch failed: " + res.status);
-
-      const data = await res.json();
-      const arr = Array.isArray(data) ? data : (Array.isArray(data.cards) ? data.cards : null);
-      if(!arr) throw new Error("cards.json format invalid (expected array or {cards:[...]})");
-
-      const map = new Map();
-      for(const d of arr){ if(d && d.id) map.set(d.id, d); }
-      state.defsById = map;
-      state.defsLoaded = true;
-      ensureMinHeroes(4);
-      log(`cards.json loaded (${map.size} cards)`);
-    }catch(err){
-      log("cards.json 読み込み失敗: " + (err?.message ?? String(err)));
-      const fallback = [
-        {id:"H_001", name:"フォールバックヒーロー", type:"hero", lp:5},
-        {id:"M_001", name:"フォールバック兵", type:"monster", cost:1, atk:100, hp:200, effect:{target:"enemyMonsterOne", action:"damage", value:50}},
-        {id:"SP_103", name:"フォールバック魔法", type:"magic", cost:1, effect:{target:"enemyMonsterOne", action:"damage", value:100}},
-        {id:"SU_201", name:"フォールバック支援", type:"support", cost:1, lp:1},
-        {id:"IN_301", name:"フォールバック・インスタンス", type:"instance", effect:{target:"enemyMonsterOne", action:"destroy", value:999}},
-      ];
-      state.defsById = new Map(fallback.map(x=>[x.id,x]));
-    }
+    return need===0;
   }
 
-  
-  // ---------- Flow (Deck -> Hero Placement -> Coin Toss -> Duel Start) ----------
-  const flow = {
-    step: "deck", // deck | placement | coin
-    selectedHeroIds: [],
-    frontIds: [],
-    backIds: [],
-    firstPlayer: null,
-    tossed: false,
-  };
-
-  function showMainApp(on){
-    const el = dom.mainApp;
-    if(!el) return;
-    el.style.display = on ? "block" : "none";
-  }
-  function showFlow(on){
-    if(!dom.flowBackdrop) return;
-    dom.flowBackdrop.style.display = on ? "flex" : "none";
-  }
-
-  function normIsHero(def){ return normType(def) === "HERO"; }
-
-  function heroMeta(def){
-    const lp = def.lp ?? def.LP ?? "-";
-    const rar = def.rarity ? ` / ${def.rarity}` : "";
-    return `LP:${lp}${rar}`;
-  }
-
-  function getAllHeroes(){
-    const out = [];
-    for(const d of state.defsById.values()){
-      if(normIsHero(d)) out.push(d);
-    }
-    out.sort((a,b)=>String(a.id).localeCompare(String(b.id)));
-    return out;
-  }
-
-  function renderFlowDeck(){
-    flow.step = "deck";
-    flow.frontIds = [];
-    flow.backIds = [];
-    flow.firstPlayer = null;
-    flow.tossed = false;
-
-    const heroes = getAllHeroes();
-    dom.flowTitle.textContent = "1) デッキ編集：ヒーローを4枚選択";
-    dom.flowSub.textContent = "ヒーローはデュエル開始時に前衛/後衛へ配置します（前後衛は最低1枚ずつ）。";
-    dom.flowStepChip.textContent = "STEP 1/3";
-    const selected = new Set(flow.selectedHeroIds);
-
-    const top = `
-      <div class="flowTopRow">
-        <div class="chip">選択: <b>${selected.size}</b> / 4</div>
-        <div class="flowActions">
-          <button id="flowDeckClear" class="pill">選択解除</button>
-          <button id="flowDeckNext" class="pill primary" ${selected.size===4 ? "" : "disabled"}>次へ</button>
-        </div>
-      </div>
-    `;
-
-    const grid = heroes.map(h=>{
-      const on = selected.has(h.id);
-      return `
-        <div class="flowCard">
-          <div>
-            <div class="n">${esc(h.name || h.id)}</div>
-            <div class="m">${esc(heroMeta(h))}</div>
-          </div>
-          <div class="flowActions">
-            <button class="pill ${on?"on":""}" data-flow="toggleHero" data-id="${esc(h.id)}">${on?"選択中":"選択"}</button>
-          </div>
-        </div>
-      `;
-    }).join("");
-
-    dom.flowBody.innerHTML = top + `<div class="flowGrid">${grid}</div>`;
-  }
-
-  function renderFlowPlacement(){
-    flow.step = "placement";
-    dom.flowTitle.textContent = "2) 前衛/後衛の配置";
-    dom.flowSub.textContent = "各ヒーローに「前衛へ」「後衛へ」を設定してください（前後衛それぞれ最低1枚）。";
-    dom.flowStepChip.textContent = "STEP 2/3";
-
-    const sel = flow.selectedHeroIds.slice(0,4);
-    const heroesById = new Map(getAllHeroes().map(h=>[h.id,h]));
-    const valid = sel.filter(id=>heroesById.has(id));
-    flow.selectedHeroIds = valid;
-
-    const front = new Set(flow.frontIds);
-    const back  = new Set(flow.backIds);
-    for(const id of [...front]) if(back.has(id)) back.delete(id);
-    flow.frontIds = [...front];
-    flow.backIds = [...back];
-
-    const counts = {front: flow.frontIds.length, back: flow.backIds.length};
-    const ok = (valid.length===4 && counts.front>=1 && counts.back>=1 && (counts.front+counts.back===4));
-
-    const top = `
-      <div class="flowTopRow">
-        <div class="chip">前衛: <b>${counts.front}</b> / 後衛: <b>${counts.back}</b>（合計4）</div>
-        <div class="flowActions">
-          <button id="flowPlaceBack" class="pill">戻る</button>
-          <button id="flowPlaceNext" class="pill primary" ${ok ? "" : "disabled"}>次へ</button>
-        </div>
-      </div>
-      <div class="flowHint" style="margin-bottom:10px">
-        ※前衛3/後衛1、前衛1/後衛3 なども許容します。
-      </div>
-    `;
-
-    const cards = valid.map(id=>{
-      const h = heroesById.get(id);
-      const isF = front.has(id);
-      const isB = back.has(id);
-      return `
-        <div class="flowCard">
-          <div>
-            <div class="n">${esc(h.name || h.id)}</div>
-            <div class="m">${esc(heroMeta(h))}</div>
-          </div>
-          <div class="flowActions">
-            <button class="pill ${isF?"on":""}" data-flow="setFront" data-id="${esc(id)}">前衛へ</button>
-            <button class="pill ${isB?"on":""}" data-flow="setBack" data-id="${esc(id)}">後衛へ</button>
-          </div>
-        </div>
-      `;
-    }).join("");
-
-    dom.flowBody.innerHTML = top + `<div class="flowGrid">${cards}</div>`;
-  }
-
-  function renderFlowCoin(){
-    flow.step = "coin";
-    dom.flowTitle.textContent = "3) 先攻/後攻の決定（コイントス）";
-    dom.flowSub.textContent = "コイントスを行い、結果を確定してからデュエルを開始します。";
-    dom.flowStepChip.textContent = "STEP 3/3";
-
-    const resTxt = flow.tossed ? `結果：<b>${flow.firstPlayer==="P1" ? "あなた（P1）が先攻" : "相手（P2）が先攻"}</b>` : "未実行";
-    dom.flowBody.innerHTML = `
-      <div class="flowTopRow">
-        <div class="chip">${resTxt}</div>
-        <div class="flowActions">
-          <button id="flowCoinBack" class="pill">戻る</button>
-          <button id="flowToss" class="pill primary">コイントス</button>
-          <button id="flowStartDuel" class="pill primary" ${flow.tossed ? "" : "disabled"}>デュエル開始</button>
-        </div>
-      </div>
-      <div class="flowHint">
-        ※相手のヒーローは自動編成（仮）です。
-      </div>
-    `;
-  }
-
-  function openNewDuelFlow(){
-    showMainApp(false);
-    showFlow(true);
-
-    // Deck edit: pick exactly 4 heroes (duplicates allowed if hero pool is small)
-    if(!flow.heroCounts){ flow.heroCounts = {}; }
-    const heroes = getAllHeroes();
-    // If nothing selected yet, prefill with first hero up to 4
-    const total = Object.values(flow.heroCounts).reduce((a,b)=>a+(b|0),0);
-    if(total===0 && heroes.length){
-      flow.heroCounts = {};
-      flow.heroCounts[heroes[0].id] = 4; // default: 4 copies of first hero
-    }
-    renderFlowDeck();
-  }
-
-  function getAllHeroes(){
-    const out = [];
-    for(const d of state.defsById.values()){
-      const t = (d.cardType || d.type || "").toString().toUpperCase();
-      if(t==="HERO" || t==="HERO_CARD" || t==="HEROES" || t==="HEROE" || t==="HERO"){
-        out.push(d);
-      }
-      if((d.type||"").toString().toLowerCase()==="hero") out.push(d);
-    }
-    // Dedup by id
-    const map = new Map();
-    for(const d of out){ if(d && d.id) map.set(d.id,d); }
-    return Array.from(map.values());
-  }
-
-  function flowTotalPicked(){
-    if(!flow.heroCounts) return 0;
-    let n=0;
-    for(const k in flow.heroCounts) n += (flow.heroCounts[k]|0);
-    return n;
-  }
-
-  function flowSetCount(id, next){
-    if(!flow.heroCounts) flow.heroCounts = {};
-    const heroes = new Set(getAllHeroes().map(h=>h.id));
-    if(!heroes.has(id)) return;
-
-    const cur = flow.heroCounts[id] | 0;
-    const total = flowTotalPicked();
-    const clamped = Math.max(0, Math.min(4, next|0));
-
-    // Adjust with global cap 4
-    let desiredTotal = total - cur + clamped;
-    if(desiredTotal > 4){
-      // reduce to fit
-      const allow = 4 - (total - cur);
-      flow.heroCounts[id] = Math.max(0, allow);
-    }else{
-      flow.heroCounts[id] = clamped;
-    }
-
-    // Clean zeros
-    if(flow.heroCounts[id]===0) delete flow.heroCounts[id];
-
-    renderFlowDeck();
-  }
-
-  function flowExpandPickIds(){
-    const heroes = getAllHeroes();
-    const order = heroes.map(h=>h.id);
-    const ids = [];
-    for(const id of order){
-      const c = (flow.heroCounts && flow.heroCounts[id])|0;
-      for(let i=0;i<c;i++) ids.push(id);
-    }
-    // If still short (e.g., no heroes), fill with fallback hero if exists
-    if(ids.length<4 && order.length){
-      while(ids.length<4) ids.push(order[0]);
-    }
-    return ids.slice(0,4);
-  }
-
-  function renderFlowDeck(){
-    if(!dom.flowRoot) return;
-    const heroes = getAllHeroes();
-
-    const total = flowTotalPicked();
-    const poolNote = heroes.length>=4
-      ? "※4枚選択（重複可/不可はデッキルール次第。現在は重複可）"
-      : "※ヒーローの種類が4枚未満のため、重複選択を許可しています。";
-
-    const rows = heroes.map(h=>{
-      const cnt = (flow.heroCounts && flow.heroCounts[h.id])|0;
-      return `
-        <div class="flowCard">
-          <div class="flowCardLeft">
-            <div class="flowName">${esc(h.name || h.id)}</div>
-            <div class="flowMeta">LP:${esc(h.lp ?? h.LP ?? "-")} / ${esc(h.rarity ?? "")}</div>
-          </div>
-          <div class="flowCardRight">
-            <button class="pill" data-act="heroMinus" data-id="${esc(h.id)}" ${cnt<=0 ? "disabled":""}>−</button>
-            <div class="chip">${cnt}</div>
-            <button class="pill primary" data-act="heroPlus" data-id="${esc(h.id)}" ${total>=4 ? "disabled":""}>＋</button>
-          </div>
-        </div>
-      `;
-    }).join("") || `<div class="small muted">ヒーローカードが cards.json に存在しません。</div>`;
-
-    dom.flowRoot.innerHTML = `
-      <div class="flowBox">
-        <div class="flowHead">
-          <div>
-            <div class="flowTitle">1) デッキ編集：ヒーローを4枚選択 <span class="chip">STEP 1/3</span></div>
-            <div class="small muted">ヒーローはデュエル開始時に前衛/後衛へ配置します（前後衛は最低1枚ずつ）。</div>
-          </div>
-          <button class="pill" data-act="flowClose">閉じる</button>
-        </div>
-
-        <div class="flowBody">
-          <div class="row" style="justify-content:space-between;margin:8px 0 12px 0">
-            <div class="chip">選択: <b>${total}</b> / 4</div>
-            <div class="small muted">${poolNote}</div>
-          </div>
-          <div class="flowList">${rows}</div>
-        </div>
-
-        <div class="flowFoot">
-          <button class="pill" data-act="flowClear">選択解除</button>
-          <button class="pill primary" data-act="flowNextDeck" ${total===4 ? "" : "disabled"}>次へ</button>
-        </div>
-      </div>
-    `;
-
-    // Bind actions
-    dom.flowRoot.querySelectorAll("[data-act]").forEach(el=>{
-      const act = el.getAttribute("data-act");
-      el.addEventListener("click", ()=>{
-        if(act==="flowClose"){ showFlow(false); showMainApp(true); return; }
-        if(act==="flowClear"){ flow.heroCounts = {}; renderFlowDeck(); return; }
-        if(act==="heroPlus"){
-          const id = el.getAttribute("data-id"); 
-          const cur = (flow.heroCounts && flow.heroCounts[id])|0;
-          flowSetCount(id, cur+1); return;
-        }
-        if(act==="heroMinus"){
-          const id = el.getAttribute("data-id");
-          const cur = (flow.heroCounts && flow.heroCounts[id])|0;
-          flowSetCount(id, cur-1); return;
-        }
-        if(act==="flowNextDeck"){
-          flow.pickIds = flowExpandPickIds(); // length 4
-          flow.frontIdx = new Set();
-          flow.backIdx  = new Set();
-          flow.step = 2;
-          renderFlowPlacement();
-          return;
-        }
-      });
-    });
-  }
-
-  function renderFlowPlacement(){
-    if(!dom.flowRoot) return;
-    const ids = flow.pickIds && flow.pickIds.length===4 ? flow.pickIds : flowExpandPickIds();
-    flow.pickIds = ids;
-
-    const rows = ids.map((id, idx)=>{
-      const d = state.defsById.get(id) || {id, name:id};
-      const inFront = flow.frontIdx && flow.frontIdx.has(idx);
-      const inBack  = flow.backIdx  && flow.backIdx.has(idx);
-      const pos = inFront ? "前衛" : inBack ? "後衛" : "未配置";
-      return `
-        <div class="flowCard">
-          <div class="flowCardLeft">
-            <div class="flowName">#${idx+1} ${esc(d.name || d.id)}</div>
-            <div class="flowMeta">LP:${esc(d.lp ?? d.LP ?? "-")} / ${esc(d.rarity ?? "")} / ${esc(d.id)}</div>
-          </div>
-          <div class="flowCardRight">
-            <button class="pill" data-act="toFront" data-idx="${idx}">前衛へ</button>
-            <button class="pill" data-act="toBack" data-idx="${idx}">後衛へ</button>
-            <div class="chip">${pos}</div>
-          </div>
-        </div>
-      `;
-    }).join("");
-
-    const frontN = flow.frontIdx ? flow.frontIdx.size : 0;
-    const backN  = flow.backIdx  ? flow.backIdx.size : 0;
-    const allAssigned = (frontN + backN) === 4;
-    const okMin = frontN>=1 && backN>=1;
-    const canNext = allAssigned && okMin;
-
-    dom.flowRoot.innerHTML = `
-      <div class="flowBox">
-        <div class="flowHead">
-          <div>
-            <div class="flowTitle">2) 配置：前衛/後衛を決める <span class="chip">STEP 2/3</span></div>
-            <div class="small muted">前衛/後衛は最低1枚ずつ必要です（前3後1、前1後3 など可）。</div>
-          </div>
-          <button class="pill" data-act="flowClose">閉じる</button>
-        </div>
-
-        <div class="flowBody">
-          <div class="row" style="gap:10px;margin:8px 0 12px 0">
-            <div class="chip">前衛: <b>${frontN}</b></div>
-            <div class="chip">後衛: <b>${backN}</b></div>
-            ${(!okMin && allAssigned) ? `<div class="small" style="color:rgba(255,200,200,.95);font-weight:800">※前衛/後衛が0枚の側があります</div>` : ``}
-          </div>
-          <div class="flowList">${rows}</div>
-        </div>
-
-        <div class="flowFoot">
-          <button class="pill" data-act="flowBack">戻る</button>
-          <button class="pill primary" data-act="flowNextPlace" ${canNext ? "" : "disabled"}>次へ</button>
-        </div>
-      </div>
-    `;
-
-    dom.flowRoot.querySelectorAll("[data-act]").forEach(el=>{
-      const act = el.getAttribute("data-act");
-      el.addEventListener("click", ()=>{
-        if(act==="flowClose"){ showFlow(false); showMainApp(true); return; }
-        if(act==="flowBack"){ flow.step=1; renderFlowDeck(); return; }
-        if(act==="toFront"){
-          const idx = parseInt(el.getAttribute("data-idx"),10);
-          if(!flow.frontIdx) flow.frontIdx = new Set();
-          if(!flow.backIdx) flow.backIdx = new Set();
-          flow.backIdx.delete(idx);
-          flow.frontIdx.add(idx);
-          renderFlowPlacement();
-          return;
-        }
-        if(act==="toBack"){
-          const idx = parseInt(el.getAttribute("data-idx"),10);
-          if(!flow.frontIdx) flow.frontIdx = new Set();
-          if(!flow.backIdx) flow.backIdx = new Set();
-          flow.frontIdx.delete(idx);
-          flow.backIdx.add(idx);
-          renderFlowPlacement();
-          return;
-        }
-        if(act==="flowNextPlace"){
-          flow.step = 3;
-          renderFlowFirstSecond();
-          return;
-        }
-      });
-    });
-  }
-
-  function renderFlowFirstSecond(){
-    if(!dom.flowRoot) return;
-    const coin = (flow.coinResult==null) ? "未決定" : (flow.coinResult===0 ? "表（P1先攻）" : "裏（P2先攻）");
-    dom.flowRoot.innerHTML = `
-      <div class="flowBox">
-        <div class="flowHead">
-          <div>
-            <div class="flowTitle">3) 先攻/後攻を決定 <span class="chip">STEP 3/3</span></div>
-            <div class="small muted">コイントス（仮）で先攻/後攻を決めます。</div>
-          </div>
-          <button class="pill" data-act="flowClose">閉じる</button>
-        </div>
-
-        <div class="flowBody">
-          <div class="chip" style="margin-bottom:10px">結果: <b>${coin}</b></div>
-          <button class="pill primary" data-act="coinToss" style="width:100%;padding:14px 12px;font-size:16px">コイントス</button>
-        </div>
-
-        <div class="flowFoot">
-          <button class="pill" data-act="flowBack2">戻る</button>
-          <button class="pill primary" data-act="flowStartDuel" ${(flow.coinResult==null) ? "disabled":""}>デュエル開始</button>
-        </div>
-      </div>
-    `;
-
-    dom.flowRoot.querySelectorAll("[data-act]").forEach(el=>{
-      const act = el.getAttribute("data-act");
-      el.addEventListener("click", ()=>{
-        if(act==="flowClose"){ showFlow(false); showMainApp(true); return; }
-        if(act==="flowBack2"){ flow.step=2; renderFlowPlacement(); return; }
-        if(act==="coinToss"){
-          flow.coinResult = Math.random()<0.5 ? 0 : 1;
-          renderFlowFirstSecond();
-          return;
-        }
-        if(act==="flowStartDuel"){
-          setupDuelFromSelection();
-          showFlow(false);
-          showMainApp(true);
-          return;
-        }
-      });
-    });
-  }
-function setupDemoNonHeroZones(){
-  // Instances (5 each)
-  const instIds = pickMany(d => String(d.cardType||d.type||"").toUpperCase()==="INSTANCE" || String(d.type||"").toLowerCase()==="instance", 5);
-  for(let i=0;i<5;i++){
-    const id = instIds[i] || (pickByType("INSTANCE")||"i_fallback_1");
-    const c1 = makeCardInst(id,"P1"); c1.zone=Z.INST; c1.faceDown=true; state.players.P1.instance[i]=c1;
-    const c2 = makeCardInst(id,"P2"); c2.zone=Z.INST; c2.faceDown=true; state.players.P2.instance[i]=c2;
-  }
-
-  // P1 hand
-  const handIds = pickMany(d => ["MONSTER","SPELL","SUPPORT","MAGIC"].includes(String(d.cardType||d.type||"").toUpperCase()) || ["monster","magic","support"].includes(String(d.type||"").toLowerCase()), 12);
-  while(handIds.length<5){
-    for(const d of state.defsById.values()){ if(d && d.id) { handIds.push(d.id); if(handIds.length>=5) break; } }
-  }
-  state.players.P1.hand = handIds.slice(0,5).map(id=>{ const c=makeCardInst(id,"P1"); c.zone=Z.HAND; return c; });
-
-  // Mana 2 each (use first hand cards if possible)
-  state.players.P1.mana = [];
-  state.players.P2.mana = [];
-  for(let i=0;i<2;i++){
-    const id = state.players.P1.hand[i]?.id || (pickByType("MONSTER")||"m_fallback_1");
-    const c = makeCardInst(id,"P1"); c.zone=Z.MANA; state.players.P1.mana.push(c);
-  }
-  for(let i=0;i<2;i++){
-    const id = pickByType("MONSTER")||"m_fallback_1";
-    const c = makeCardInst(id,"P2"); c.zone=Z.MANA; c.faceDown=true; state.players.P2.mana.push(c);
-  }
-
-  // One opponent monster + facedown support to confirm
-  const oppMon = pickByType("MONSTER") || "m_fallback_1";
-  const om = makeCardInst(oppMon, "P2"); om.zone=Z.MON; om.summonSick=false;
-  state.players.P2.monster[0] = om;
-
-  const oppSup = pickByType("SUPPORT") || pickByType("MAGIC") || "su_fallback_1";
-  const os = makeCardInst(oppSup, "P2"); os.zone=Z.SUP; os.faceDown=true;
-  state.players.P2.support[0] = os;
-}
-
-  function setupDuelFromSelection(){
-    resetGame();
-    // Determine first player
-    if(flow.coinResult===1){
-      state.active = "P2";
-    }else{
-      state.active = "P1";
-    }
-
-    // Build heroes from pickIds + placement
-    const ids = flow.pickIds && flow.pickIds.length===4 ? flow.pickIds : flowExpandPickIds();
-    const frontIds = [];
-    const backIds  = [];
-    for(let i=0;i<ids.length;i++){
-      if(flow.frontIdx && flow.frontIdx.has(i)) frontIds.push(ids[i]);
-      else if(flow.backIdx && flow.backIdx.has(i)) backIds.push(ids[i]);
-    }
-    // Safety: ensure at least 1 each
-    if(frontIds.length===0 && backIds.length){ frontIds.push(backIds.shift()); }
-    if(backIds.length===0 && frontIds.length){ backIds.push(frontIds.pop()); }
-
-    // Place P1 heroes
-    state.players.P1.heroFront = frontIds.map(id=>{ const c=makeCardInst(id,"P1"); c.zone=Z.HERO; c.isFront=true; return c; });
-    state.players.P1.heroBack  = backIds.map(id=>{ const c=makeCardInst(id,"P1"); c.zone=Z.HERO; c.isFront=false; return c; });
-
-    // Opponent heroes (auto)
-    autoBuildOpponentHeroes();
-
-    // Setup other zones demo
-    setupDemoNonHeroZones();
-
-    log(`デュエル開始: 先攻=${state.active}`);
-    render();
-  }function autoBuildOpponentHeroes(){
-    const heroes = getAllHeroes();
-    let ids = heroes.slice(0,4).map(h=>h.id);
-    if(ids.length<4){
-      ids = heroes.map(h=>h.id);
-      while(ids.length<4) ids.push(heroes[0]?.id || "H_001");
-      ids = ids.slice(0,4);
-    }
-    const k = 1 + Math.floor(Math.random()*3);
-    return {front: ids.slice(0,k), back: ids.slice(k)};
-  }
-
-  function setupDuelFromSelection(){
-    const sel = flow.selectedHeroIds.slice(0,4);
-    const front = flow.frontIds.filter(id=>sel.includes(id));
-    const back = flow.backIds.filter(id=>sel.includes(id));
-    if(sel.length!==4 || front.length<1 || back.length<1 || front.length+back.length!==4){
-      log("配置が不正です。デッキ編集からやり直してください。");
-      openNewDuelFlow();
-      return;
-    }
-
-    resetGame();
-    state.active = flow.firstPlayer || "P1";
-    state.turn = 1;
-    state.phase = "MAIN";
-
-    const p1 = state.players.P1;
-    p1.heroFront = front.map(id=>{ const c=makeCardInst(id,"P1"); c.zone=Z.HERO; return c; });
-    p1.heroBack  = back.map(id=>{ const c=makeCardInst(id,"P1"); c.zone=Z.HERO; return c; });
-
-    const opp = autoBuildOpponentHeroes();
-    const p2 = state.players.P2;
-    p2.heroFront = opp.front.map(id=>{ const c=makeCardInst(id,"P2"); c.zone=Z.HERO; return c; });
-    p2.heroBack  = opp.back.map(id=>{ const c=makeCardInst(id,"P2"); c.zone=Z.HERO; return c; });
-
-    // instances facedown
-    const instIds = pickMany(d => normType(d)==="INSTANCE", 5);
-    for(let i=0;i<5;i++){
-      const id = instIds[i] || pickByType("INSTANCE") || "IN_301";
-      const c1 = makeCardInst(id,"P1"); c1.zone=Z.INST; c1.faceDown=true; p1.instance[i]=c1;
-      const c2 = makeCardInst(id,"P2"); c2.zone=Z.INST; c2.faceDown=true; p2.instance[i]=c2;
-    }
-
-    // P1 hand
-    const handIds = pickMany(d => ["MONSTER","SPELL","SUPPORT","MAGIC"].includes(normType(d)), 8);
-    while(handIds.length<5){
-      for(const d of state.defsById.values()){ handIds.push(d.id); if(handIds.length>=5) break; }
-    }
-    p1.hand = handIds.slice(0,5).map(id=>{ const c=makeCardInst(id,"P1"); c.zone=Z.HAND; return c; });
-
-    log(`デュエル開始（先攻: ${state.active}）`);
-    showFlow(false);
-    showMainApp(true);
-    render();
-  }
-
-
-function resetGame(){
-    state.turn = 1;
-    state.active = "P1";
-    state.phase = "MAIN";
-    state.perTurn.P1.heroSwapUsed = false;
-    state.perTurn.P2.heroSwapUsed = false;
+  function resetGame(){
+    state.turn=1; state.active="P1"; state.phase="MAIN";
+    state.perTurn.P1={manaSet:false, heroSwap:false};
+    state.perTurn.P2={manaSet:false, heroSwap:false};
     state.players.P1 = makeEmptyPlayer();
     state.players.P2 = makeEmptyPlayer();
-    state.heroSwap = { active:false, owner:"P1", fromRow:null, fromIndex:null, free:false };
-    cancelTargeting(false);
-    dom.log.value = "";
+    closeModal();
     log("リセットしました。");
     render();
   }
 
-  function pickMany(filterFn, n){
+  function pickMany(pred, n){
     const out=[];
     for(const d of state.defsById.values()){
-      if(filterFn(d)) out.push(d.id);
+      if(pred(d)) out.push(d.id);
       if(out.length>=n) break;
     }
     return out;
@@ -1159,788 +486,486 @@ function resetGame(){
 
   function setupDemo(){
     resetGame();
-    const heroIds = pickMany(d => normType(d)==="HERO", 4);
-    const instIds = pickMany(d => normType(d)==="INSTANCE", 5);
-    const monIds = pickMany(d => normType(d)==="MONSTER", 7);
-    const supSpellIds = pickMany(d => ["SUPPORT","SPELL"].includes(normType(d)), 10);
 
-    const p1 = state.players.P1;
-    for(let i=0;i<4;i++){
-      const id = heroIds[i] ?? "H_001";
-      const c = makeCardInst(id, "P1");
-      ensureStats(c);
-      if(i<2) p1.heroFront.push(c); else p1.heroBack.push(c);
-    }
+    const heroIds = pickMany(d=>String(d.cardType).toUpperCase()==="HERO", 6);
+    const instIds = pickMany(d=>String(d.cardType).toUpperCase()==="INSTANCE", 6);
+    const monIds  = pickMany(d=>String(d.cardType).toUpperCase()==="MONSTER", 8);
+    const supIds  = pickMany(d=>String(d.cardType).toUpperCase()==="SUPPORT", 8);
+    const splIds  = pickMany(d=>String(d.cardType).toUpperCase()==="SPELL", 8);
 
-    const p2 = state.players.P2;
-    for(let i=0;i<4;i++){
-      const id = heroIds[(i+1)%Math.max(1,heroIds.length)] ?? "H_001";
-      const c = makeCardInst(id, "P2");
-      ensureStats(c);
-      if(i<2) p2.heroFront.push(c); else p2.heroBack.push(c);
-    }
-
-    for(let i=0;i<5;i++){
-      const c1 = makeCardInst(instIds[i] ?? "IN_301","P1"); c1.faceDown=true; p1.instance[i]=c1;
-      const c2 = makeCardInst(instIds[(i+1)%Math.max(1,instIds.length)] ?? "IN_301","P2"); c2.faceDown=true; p2.instance[i]=c2;
-    }
-
-    const handPool = [...monIds, ...supSpellIds, ...instIds].filter(Boolean);
-    while(handPool.length<7){
-      for(const d of state.defsById.values()){ handPool.push(d.id); if(handPool.length>=7) break; }
-    }
-    p1.hand = handPool.slice(0,7).map(id=>makeCardInst(id,"P1"));
-
-    for(let i=0;i<3;i++){
-      const id = p1.hand[i]?.id ?? (monIds[0] ?? "M_001");
-      const c = makeCardInst(id,"P1"); p1.mana.push(c);
+    // P1 heroes: 2 front, 2 back (later: selection)
+    for(let i=0;i<2;i++){
+      const id = heroIds[i] || "H_FB";
+      const c = makeCardInst(id,"P1"); c.zone=Z.HERO_F;
+      state.players.P1.heroFront[i]=c;
     }
     for(let i=0;i<2;i++){
-      const id = monIds[i] ?? "M_001";
-      const c = makeCardInst(id,"P2"); c.faceDown=true; p2.mana.push(c);
+      const id = heroIds[i+2] || heroIds[0] || "H_FB";
+      const c = makeCardInst(id,"P1"); c.zone=Z.HERO_B;
+      state.players.P1.heroBack[i]=c;
     }
 
-    const om = makeCardInst(monIds[0] ?? "M_001","P2"); ensureStats(om); p2.monster[0]=om;
-    const om2 = makeCardInst(monIds[1] ?? monIds[0] ?? "M_001","P2"); ensureStats(om2); p2.monster[1]=om2;
+    // P2 heroes: 2 front, 2 back (mirrored display but same data)
+    for(let i=0;i<2;i++){
+      const id = heroIds[i+1] || "H_FB";
+      const c = makeCardInst(id,"P2"); c.zone=Z.HERO_F;
+      state.players.P2.heroFront[i]=c;
+    }
+    for(let i=0;i<2;i++){
+      const id = heroIds[i+3] || heroIds[0] || "H_FB";
+      const c = makeCardInst(id,"P2"); c.zone=Z.HERO_B;
+      state.players.P2.heroBack[i]=c;
+    }
 
-    const pm = makeCardInst(monIds[0] ?? "M_001","P1"); ensureStats(pm); p1.monster[0]=pm;
+    // Instances
+    for(let i=0;i<3;i++){
+      const id = instIds[i] || "IN_FB";
+      const c1 = makeCardInst(id,"P1"); c1.zone=Z.INST; c1.faceDown=true;
+      state.players.P1.instance[i]=c1;
+      const c2 = makeCardInst(id,"P2"); c2.zone=Z.INST; c2.faceDown=true;
+      state.players.P2.instance[i]=c2;
+    }
 
-    const os = makeCardInst(supSpellIds[0] ?? "SU_201","P2"); os.faceDown=true; p2.support[0]=os;
+    // Opponent has 1 monster and 1 support facedown
+    if(monIds[0]){
+      const m = makeCardInst(monIds[0],"P2"); m.zone=Z.MON;
+      state.players.P2.monster[0]=m;
+    }
+    if(supIds[0]){
+      const s = makeCardInst(supIds[0],"P2"); s.zone=Z.SUP; s.faceDown=true;
+      state.players.P2.support[0]=s;
+    }
+
+    // Hand
+    const hand = [];
+    for(const id of [...monIds, ...splIds, ...supIds]){
+      if(hand.length>=6) break;
+      hand.push(id);
+    }
+    state.players.P1.hand = hand.map(id=>{ const c=makeCardInst(id||"M_FB","P1"); c.zone=Z.HAND; return c; });
+
+    // Mana: take first 2 hand cards as mana faceup (for demo)
+    for(let i=0;i<2;i++){
+      const h = state.players.P1.hand[i];
+      const id = h ? h.id : (monIds[0]||"M_FB");
+      const c = makeCardInst(id,"P1"); c.zone=Z.MANA;
+      state.players.P1.mana.push(c);
+    }
 
     log("デモセットアップ完了。");
     render();
   }
 
-  function endTurn(){
-    state.active = (state.active==="P1") ? "P2" : "P1";
-    if(state.active==="P1") state.turn += 1;
+  function render(){
+    // chips
+    if(dom.chipPhase) dom.chipPhase.textContent = "PHASE: " + state.phase;
+    if(dom.chipTurn) dom.chipTurn.textContent = "TURN: " + state.turn;
+    if(dom.chipActive) dom.chipActive.textContent = "Active: " + state.active;
+    if(dom.chipMana) dom.chipMana.textContent = `P1 Mana: ${state.players.P1.mana.length} (${manaAvailable("P1")} untapped)`;
+    if(dom.boxTurn) dom.boxTurn.textContent = String(state.turn);
+    if(dom.boxPhase) dom.boxPhase.textContent = state.phase;
 
-    state.perTurn[state.active].heroSwapUsed = false;
-    untapAllMana(state.active);
+    // opponent
+    renderRow(dom.p2Sup, state.players.P2.support, {owner:"P2", zone:Z.SUP, viewer:"P1", max:10});
+    renderRow(dom.p2Inst, state.players.P2.instance, {owner:"P2", zone:Z.INST, viewer:"P1", max:5});
+    renderRow(dom.p2HeroBack, state.players.P2.heroBack, {owner:"P2", zone:Z.HERO_B, viewer:"P1", max:3});
+    renderRow(dom.p2HeroFront, state.players.P2.heroFront, {owner:"P2", zone:Z.HERO_F, viewer:"P1", max:3});
+    renderRow(dom.p2Mon, state.players.P2.monster, {owner:"P2", zone:Z.MON, viewer:"P1", max:10});
 
-    state.heroSwap = { active:false, owner:"P1", fromRow:null, fromIndex:null, free:false };
-    cancelTargeting(false);
-    log(`ターン終了 → Active=${state.active} / Turn=${state.turn}`);
-    render();
-  }
-
-  // ---------- Hero swap ----------
-  function beginHeroSwap(owner, fromRow, fromIndex, free=false){
-    // free=true: 前衛ヒーロー戦闘不能時の任意/強制入れ替え（コスト無し・回数制限無し）
-    const fromRef = {owner, zone: fromRow, index: fromIndex};
-    const inst = getInstByRef(fromRef);
-    if(!inst) return;
-    if(isHeroKO(inst)){ log("戦闘不能ヒーローからは入れ替え開始できません。"); return; }
-
-    if(!free){
-      if(owner!==state.active){ log("自分の手番のみ入れ替え可能。"); return; }
-      if(state.perTurn[owner].heroSwapUsed){ log("このターンは既にヒーロー入れ替え済み。"); return; }
-      if(manaAvailable(owner) < 1){ log("マナ不足（入れ替えは1マナ）。"); return; }
-    }
-
-    state.heroSwap.active = true;
-    state.heroSwap.owner = owner;
-    state.heroSwap.fromRow = fromRow;
-    state.heroSwap.fromIndex = fromIndex;
-    state.heroSwap.free = !!free;
-    log(`入れ替え開始: ${owner} ${fromRow}[${fromIndex+1}]${free?"（無料）":""}`);
-    render();
-  }
-
-  function completeHeroSwap(toRow, toIndex){
-    if(!state.heroSwap.active) return;
-    const owner = state.heroSwap.owner;
-    const fromRow = state.heroSwap.fromRow;
-    const fromIndex = state.heroSwap.fromIndex;
-
-    const fromRef = {owner, zone: fromRow, index: fromIndex};
-    const toRef   = {owner, zone: toRow,   index: toIndex};
-
-    const a = getInstByRef(fromRef);
-    const b = getInstByRef(toRef);
-    if(!a || !b){ cancelHeroSwap(); return; }
-
-    if(isHeroKO(a) || isHeroKO(b)){ log("戦闘不能ヒーローとは入れ替えできません。"); cancelHeroSwap(); return; }
-
-    if(!state.heroSwap.free){
-      if(!tapOneMana(owner)){ log("マナ支払いに失敗。"); cancelHeroSwap(); return; }
-      state.perTurn[owner].heroSwapUsed = true;
-    }
-
-    setInstByRef(fromRef, b);
-    setInstByRef(toRef, a);
-
-    log(`入れ替え完了: ${fromRow}[${fromIndex+1}] ⇄ ${toRow}[${toIndex+1}]`);
-    state.heroSwap = { active:false, owner:"P1", fromRow:null, fromIndex:null, free:false };
-    render();
-  }
-
-  function cancelHeroSwap(){
-    if(!state.heroSwap.active) return;
-    state.heroSwap = { active:false, owner:"P1", fromRow:null, fromIndex:null, free:false };
-    log("入れ替えをキャンセルしました。");
-    render();
-  }
-
-  // ---------- Targeting ----------
-  function setTargetBar(show, msg, sub){
-    dom.targetBar.style.display = show ? "flex" : "none";
-    if(show){
-      dom.targetMsg.textContent = msg || "対象を選択してください";
-      dom.targetSub.textContent = sub || "Escでキャンセル";
-    }
-  }
-
-  function cancelTargeting(writeLog=true){
-    if(!state.targeting.active) return;
-    state.targeting.active = false;
-    state.targeting.sourceRef = null;
-    state.targeting.effect = null;
-    state.targeting.candidates = [];
-    state.targeting.prompt = "";
-    setTargetBar(false);
-    if(writeLog) log("対象選択をキャンセルしました。");
-    render();
-  }
-
-  function computeCandidates(effect){
-    const t = String(effect?.target ?? "").trim();
-    const p1 = state.players.P1;
-    const p2 = state.players.P2;
-
-    const cand = [];
-    const push = (owner, zone, index) => cand.push({owner, zone, index});
-
-    if(t === "enemyMonsterOne"){
-      // enemy relative to active player
-      const enemy = (state.active==="P1") ? "P2" : "P1";
-      const arr = state.players[enemy].monster;
-      arr.forEach((x,i)=>{ if(x) push(enemy, Z.MON, i); });
-    }else if(t === "allyMonsterOne"){
-      const ally = state.active;
-      const arr = state.players[ally].monster;
-      arr.forEach((x,i)=>{ if(x) push(ally, Z.MON, i); });
-    }else if(t === "enemyHeroFrontOne"){
-      const enemy = (state.active==="P1") ? "P2" : "P1";
-      const arr = state.players[enemy].heroFront;
-      arr.forEach((x,i)=>{ if(x && !isHeroKO(x)) push(enemy, Z.HERO_F, i); });
-    }else if(t === "allyHeroFrontOne"){
-      const ally = state.active;
-      const arr = state.players[ally].heroFront;
-      arr.forEach((x,i)=>{ if(x && !isHeroKO(x)) push(ally, Z.HERO_F, i); });
-    }
-    
-    else if(t === "enemyHeroBackOne"){
-      const enemy = (state.active==="P1") ? "P2" : "P1";
-      state.players[enemy].heroBack.forEach((x,i)=>{ if(x && !isHeroKO(x)) push(enemy, Z.HEROB, i); });
-    }else if(t === "allyHeroBackOne"){
-      const ally = state.active;
-      state.players[ally].heroBack.forEach((x,i)=>{ if(x && !isHeroKO(x)) push(ally, Z.HEROB, i); });
-    }else if(t === "enemyHeroOne"){
-      const enemy = (state.active==="P1") ? "P2" : "P1";
-      state.players[enemy].heroFront.forEach((x,i)=>{ if(x && !isHeroKO(x)) push(enemy, Z.HEROF, i); });
-      state.players[enemy].heroBack.forEach((x,i)=>{ if(x && !isHeroKO(x)) push(enemy, Z.HEROB, i); });
-    }else if(t === "allyHeroOne"){
-      const ally = state.active;
-      state.players[ally].heroFront.forEach((x,i)=>{ if(x && !isHeroKO(x)) push(ally, Z.HEROF, i); });
-      state.players[ally].heroBack.forEach((x,i)=>{ if(x && !isHeroKO(x)) push(ally, Z.HEROB, i); });
-    }else if(t === "enemyHeroesAll"){
-      const enemy = (state.active==="P1") ? "P2" : "P1";
-      state.players[enemy].heroFront.forEach((x,i)=>{ if(x && !isHeroKO(x)) push(enemy, Z.HEROF, i); });
-      state.players[enemy].heroBack.forEach((x,i)=>{ if(x && !isHeroKO(x)) push(enemy, Z.HEROB, i); });
-    }else if(t === "allyHeroesAll"){
-      const ally = state.active;
-      state.players[ally].heroFront.forEach((x,i)=>{ if(x && !isHeroKO(x)) push(ally, Z.HEROF, i); });
-      state.players[ally].heroBack.forEach((x,i)=>{ if(x && !isHeroKO(x)) push(ally, Z.HEROB, i); });
-    }
-
-    return cand;
-  }
-
-  function beginTargeting(sourceRef, effect){
-    const candidates = computeCandidates(effect);
-    if(candidates.length === 0){
-      log("対象候補がありません（target条件を満たすカードがない）。");
-      return;
-    }
-    state.targeting.active = true;
-    state.targeting.owner = state.active;
-    state.targeting.sourceRef = sourceRef;
-    state.targeting.effect = effect;
-    state.targeting.candidates = candidates;
-
-    const t = String(effect?.target ?? "");
-    setTargetBar(true, `対象を選択: ${t}`, "候補がハイライトされます（Escでキャンセル）");
-    render();
-  }
-
-  function isCandidate(ref){
-    if(!state.targeting.active) return false;
-    return state.targeting.candidates.some(c => c.owner===ref.owner && c.zone===ref.zone && c.index===ref.index);
-  }
-
-  function getInstByRef(ref){
-    const p = state.players[ref.owner];
-    if(ref.zone===Z.MON) return p.monster[ref.index] ?? null;
-    if(ref.zone===Z.SUP) return p.support[ref.index] ?? null;
-    if(ref.zone===Z.INST) return p.instance[ref.index] ?? null;
-    if(ref.zone===Z.HAND) return p.hand[ref.index] ?? null;
-    if(ref.zone===Z.HERO_F) return p.heroFront[ref.index] ?? null;
-    if(ref.zone===Z.HERO_B) return p.heroBack[ref.index] ?? null;
-    return null;
-  }
-
-  function removeFromZone(ref){
-    const p = state.players[ref.owner];
-    if(ref.zone===Z.MON){ p.monster[ref.index]=null; return; }
-    if(ref.zone===Z.SUP){ p.support[ref.index]=null; return; }
-    if(ref.zone===Z.INST){ p.instance[ref.index]=null; return; }
-    if(ref.zone===Z.HAND){ p.hand.splice(ref.index,1); return; }
-    // HERO not removed here
-  }
-
-  function moveToGrave(inst){
-    const p = state.players[inst.owner];
-    p.grave.push(inst);
-  }
-  function moveToBanish(inst){
-    const p = state.players[inst.owner];
-    p.banish.push(inst);
-  }
-
-  function applyEffectToTarget(effect, targetRef){
-    const action = String(effect?.action ?? "").trim();
-    let value = effect?.value;
-    const amount = (typeof value==="number") ? value : (typeof value==="string" ? Number(value) : (typeof value==="object" ? Number(value.amount ?? 0) : 0));
-
-    const tgt = getInstByRef(targetRef);
-    if(!tgt){ log("対象が見つかりません。"); return; }
-    ensureStats(tgt);
-
-    if(action === "damage"){
-      if(targetRef.zone===Z.MON){
-        tgt._hp = Math.max(0, Number(tgt._hp ?? 0) - Number(amount ?? 0));
-        const name = defOf(tgt)?.name ?? tgt.id;
-        log(`→ ${name} に ${amount} ダメージ（残HP:${tgt._hp}）`);
-        if(isMonsterDead(tgt)){
-          log(`→ ${name} は破壊され墓地へ。`);
-          removeFromZone(targetRef);
-          moveToGrave(tgt);
-        }
-      }else if(targetRef.zone===Z.HERO_F){
-        tgt._lp = Math.max(0, Number(tgt._lp ?? 0) - Number(amount ?? 0));
-        const name = defOf(tgt)?.name ?? tgt.id;
-        log(`→ ${name} に ${amount} ダメージ（残LP:${tgt._lp}）`);
-        if(isHeroKO(tgt)){
-          tgt.tapped = true;
-          log(`→ ${name} は戦闘不能（盤面に残留）。`);
-          if(targetRef.zone===Z.HEROF){
-            if(allHeroFrontKO(targetRef.owner)) forceSwapHeroRows(targetRef.owner);
-            else promptSwapOnFrontHeroKO(targetRef.owner, targetRef.index);
-          }
-        }
-      }else{
-        log("この対象へのdamageは未対応です。");
-      }
-    }else if(action === "destroy"){
-      // destroy: monster=HP0 -> grave, hero=LP0 -> KO
-      const name = defOf(tgt)?.name ?? tgt.id;
-      if(targetRef.zone===Z.MON){
-        tgt._hp = 0;
-        log(`→ ${name} を破壊（墓地へ）。`);
-        removeFromZone(targetRef);
-        moveToGrave(tgt);
-      }else if(targetRef.zone===Z.HERO_F){
-        tgt._lp = 0;
-        tgt.tapped = true;
-        log(`→ ${name} を戦闘不能にしました（盤面残留）。`);
-        if(targetRef.zone===Z.HEROF){
-          if(allHeroFrontKO(targetRef.owner)) forceSwapHeroRows(targetRef.owner);
-          else promptSwapOnFrontHeroKO(targetRef.owner, targetRef.index);
-        }
-      }else{
-        log("この対象へのdestroyは未対応です。");
-      }
-    }else{
-      log(`action未対応: ${action}`);
-    }
-  }
-
-  function resolveTargeting(targetRef){
-    if(!state.targeting.active) return;
-    if(!isCandidate(targetRef)) return;
-
-    const effect = state.targeting.effect;
-    const srcRef = state.targeting.sourceRef;
-
-    const srcInst = getInstByRef(srcRef);
-    const srcDef = srcInst ? defOf(srcInst) : null;
-    const srcName = srcDef?.name ?? srcInst?.id ?? "不明カード";
-
-    log(`効果解決: ${srcName} -> ${String(effect?.target ?? "")}`);
-    applyEffectToTarget(effect, targetRef);
-
-    // consume source card depending on type/zone (暫定)
-    if(srcInst){
-      const type = srcDef ? normType(srcDef) : "UNKNOWN";
-      if(type==="INSTANCE"){
-        // 発動時公開→除外（デュエル中再使用不可）
-        removeFromZone(srcRef);
-        srcInst.faceDown = false;
-        moveToBanish(srcInst);
-        log(`インスタンスは除外されました: ${srcName}`);
-      }else if(type==="SPELL"){
-        // 魔法は墓地へ（暫定）
-        removeFromZone(srcRef);
-        moveToGrave(srcInst);
-        log(`魔法は墓地へ: ${srcName}`);
-      }else if(type==="SUPPORT"){
-        // サポートは設置型（手札から発動→場に置く／場から発動→残留）
-        if(srcRef.zone===Z.HAND){
-          // find empty support slot
-          const p = state.players[srcInst.owner];
-          const slot = p.support.findIndex(x=>!x);
-          if(slot>=0){
-            removeFromZone(srcRef);
-            srcInst.faceDown = false;
-            p.support[slot]=srcInst;
-            log(`サポート設置: ${srcName}（スロット${slot+1}）`);
-          }else{
-            log("サポート枠が満杯のため設置できません。");
-          }
-        }else{
-          srcInst.faceDown = false;
-          log(`サポート発動（残留）: ${srcName}`);
-        }
-      }else if(type==="MONSTER"){
-        log("モンスター効果のコスト/回数制限は未実装（暫定）。");
-      }
-    }
-
-    cancelTargeting(false);
-    render();
-  }
-
-  // ---------- Playing cards (minimal) ----------
-  function canPay(cost){ return manaAvailable(state.active) >= cost; }
-  function pay(cost){
-    for(let i=0;i<cost;i++){
-      if(!tapOneMana(state.active)) return false;
-    }
-    return true;
-  }
-
-  // ---------- Rendering ----------
-  function updateTop(){
-    dom.phaseChip.textContent = `PHASE: ${state.phase}`;
-    dom.turnChip.textContent = `TURN: ${state.turn} / Active: ${state.active}`;
-    dom.manaChip.textContent = `P1 Mana: ${manaTotal("P1")} (${manaAvailable("P1")} untapped) / SwapUsed:${state.perTurn.P1.heroSwapUsed?"Y":"N"}`;
+    // self
+    renderRow(dom.p1Mon, state.players.P1.monster, {owner:"P1", zone:Z.MON, viewer:"P1", max:10});
+    renderRow(dom.p1HeroFront, state.players.P1.heroFront, {owner:"P1", zone:Z.HERO_F, viewer:"P1", max:3});
+    renderRow(dom.p1HeroBack, state.players.P1.heroBack, {owner:"P1", zone:Z.HERO_B, viewer:"P1", max:3});
+    renderRow(dom.p1Inst, state.players.P1.instance, {owner:"P1", zone:Z.INST, viewer:"P1", max:5});
+    renderRow(dom.p1Sup, state.players.P1.support, {owner:"P1", zone:Z.SUP, viewer:"P1", max:10});
+    renderHand();
   }
 
   function cardLabel(inst, viewer){
     const d = defOf(inst);
-    if(!d) return {name: inst.id, meta:"", badges:[]};
-    const type = normType(d);
-    const facedown = (viewer !== inst.owner) && inst.faceDown;
-
-    ensureStats(inst);
+    const ctype = String(d?.cardType||"").toUpperCase();
+    const facedown = inst.faceDown && (viewer !== inst.owner);
 
     if(facedown){
-      if(type==="INSTANCE") return {name:"インスタンス（伏せ）", meta:"", badges:[{t:"伏せ", cls:"info"}]};
-      return {name:"（伏せ）", meta:"", badges:[{t:"伏せ", cls:"info"}]};
+      if(ctype==="INSTANCE") return {t:"インスタンス", m:"（伏せ）", b:""};
+      if(ctype==="SUPPORT" || ctype==="SPELL") return {t:"（伏せ）", m:"", b:""};
     }
 
-    const badges=[];
-    if(type==="HERO") badges.push({t:"HERO", cls:"info"});
-    if(type==="MONSTER") badges.push({t:(d.subType??"").toString()||"MON", cls:"info"});
-    if(type==="SUPPORT") badges.push({t:"SUP", cls:"info"});
-    if(type==="SPELL") badges.push({t:"MAG", cls:"info"});
-    if(type==="INSTANCE") badges.push({t:"INST", cls:"info"});
-    if(type==="HERO" && isHeroKO(inst)) badges.push({t:"戦闘不能", cls:"bad"});
-
-    let meta="";
-    if(type==="HERO") meta = `LP:${inst._lp ?? (d.lp ?? "-")}`;
-    else if(type==="MONSTER") meta = `Cost:${d.cost??0} / ATK:${d.atk??"-"} / HP:${inst._hp ?? (d.hp ?? "-")}`;
-    else if(type==="SUPPORT") meta = `Cost:${d.cost??0} / LP:${d.lp??1}`;
-    else if(type==="SPELL") meta = `Cost:${d.cost??0}`;
-    else if(type==="INSTANCE") meta = "（デュエル中1回）";
-
-    return {name:d.name ?? inst.id, meta, badges};
+    const name = d?.name || inst.id;
+    let mid = "";
+    if(ctype==="MONSTER"){
+      mid = `ATK:${d?.atk ?? "-"} / HP:${d?.hp ?? "-"}`;
+    }else if(ctype==="HERO"){
+      const lp = inst._lp!=null ? inst._lp : (d?.lp ?? "-");
+      mid = `LP:${lp}`;
+    }else if(ctype==="SUPPORT"){
+      mid = `SUPPORT / LP:${d?.lp ?? 1}`;
+    }else if(ctype==="SPELL"){
+      mid = `SPELL / Cost:${d?.cost ?? 0}`;
+    }else if(ctype==="INSTANCE"){
+      mid = `INSTANCE`;
+    }else{
+      mid = ctype || "UNKNOWN";
+    }
+    const bot = (d?.cost!=null && (ctype==="MONSTER"||ctype==="SPELL"||ctype==="SUPPORT")) ? `Cost:${d.cost}` : "";
+    return {t:name, m:mid, b:bot};
   }
 
-  function renderSlotsRow(container, arr, viewer, zoneKey){
-    container.innerHTML="";
-    for(let i=0;i<arr.length;i++){
-      const inst = arr[i];
+  function renderRow(container, arr, ctx){
+    if(!container) return;
+    container.innerHTML = "";
+    const {owner, zone, viewer, max} = ctx;
+    for(let i=0;i<max;i++){
+      const inst = arr[i] || null;
+      const el = document.createElement("div");
+      el.className = "slot" + (inst ? " fill" : "");
+      el.dataset.owner = owner;
+      el.dataset.zone = zone;
+      el.dataset.index = String(i);
+
       if(!inst){
-        const ph=document.createElement("div"); ph.className="slot"; ph.textContent="—"; container.appendChild(ph); continue;
+        el.innerHTML = `<div class="t">空</div>`;
+      }else{
+        const L = cardLabel(inst, viewer);
+        const d = defOf(inst);
+        const ctype = String(d?.cardType||"").toUpperCase();
+        const down = (inst.faceDown && viewer!==inst.owner);
+        el.innerHTML = `
+          <div class="t">${esc(L.t)}</div>
+          <div class="m">${esc(L.m)}</div>
+          <div class="b">${esc(L.b)}</div>
+          ${down ? `<span class="tag down">伏せ</span>` : ``}
+        `;
+        el.addEventListener("click", ()=>openDetails({owner, zone, index:i}));
       }
-      const lbl = cardLabel(inst, viewer);
-      const el=document.createElement("div"); el.className="card";
-
-      const ref = {owner:inst.owner, zone:zoneKey, index:i};
-
-      // targeting visuals
-      if(state.targeting.active){
-        if(isCandidate(ref)) el.classList.add("selectable");
-        else el.classList.add("dim");
-      }
-
-      el.addEventListener("click", (ev)=>{
-        if(state.targeting.active){
-          ev.stopPropagation();
-          if(isCandidate(ref)) resolveTargeting(ref);
-          return;
-        }
-        openCardDetails(ref);
-      });
-
-      const badges=document.createElement("div"); badges.className="badges";
-      for(const b of lbl.badges){
-        const be=document.createElement("span"); be.className="badge "+(b.cls||""); be.textContent=b.t; badges.appendChild(be);
-      }
-      el.appendChild(badges);
-
-      const nm=document.createElement("div"); nm.className="name"; nm.textContent=lbl.name; el.appendChild(nm);
-      const meta=document.createElement("div"); meta.className="meta"; meta.textContent=lbl.meta; el.appendChild(meta);
       container.appendChild(el);
     }
   }
 
-  function renderHeroGrid(container, owner, viewer){
-    const p = state.players[owner];
-    container.innerHTML="";
-
-    const frontLabel=document.createElement("div");
-    frontLabel.className="heroRowLabel";
-    frontLabel.innerHTML = `<span>前衛（${p.heroFront.length}）</span><span class="small">最低1</span>`;
-    const frontRow=document.createElement("div"); frontRow.className="heroRow";
-
-    const backLabel=document.createElement("div");
-    backLabel.className="heroRowLabel";
-    backLabel.innerHTML = `<span>後衛（${p.heroBack.length}）</span><span class="small">最低1</span>`;
-    const backRow=document.createElement("div"); backRow.className="heroRow";
-
-    container.appendChild(frontLabel); container.appendChild(frontRow);
-    container.appendChild(backLabel); container.appendChild(backRow);
-
-    function heroCard(inst, rowName, idx){
-      ensureStats(inst);
-      const lbl = cardLabel(inst, viewer);
-      const el=document.createElement("div"); el.className="card";
-
-      const ref = {owner:inst.owner, zone:(rowName==="front"?Z.HERO_F:Z.HERO_B), index:idx};
-
-      // targeting visuals
-      if(state.targeting.active){
-        if(isCandidate(ref)) el.classList.add("selectable");
-        else el.classList.add("dim");
-      }
-
-      // hero swap visuals
-      const swapMode = state.heroSwap.active && owner===state.heroSwap.owner;
-      if(swapMode){
-        if(state.heroSwap.fromRow===rowName && state.heroSwap.fromIndex===idx){
-          el.classList.add("swapSource");
-        }else if(rowName !== state.heroSwap.fromRow && !isHeroKO(inst)){
-          el.classList.add("selectable");
-        }
-      }
-
-      el.addEventListener("click", (ev)=>{
-        if(state.targeting.active){
-          ev.stopPropagation();
-          if(isCandidate(ref)) resolveTargeting(ref);
-          return;
-        }
-        if(swapMode){
-          ev.stopPropagation();
-          if(rowName !== state.heroSwap.fromRow){
-            completeHeroSwap(owner, rowName, idx);
-          }else{
-            openCardDetails(ref);
-          }
-          return;
-        }
-        openCardDetails(ref);
-      });
-
-      const badges=document.createElement("div"); badges.className="badges";
-      for(const b of lbl.badges){
-        const be=document.createElement("span"); be.className="badge "+(b.cls||""); be.textContent=b.t; badges.appendChild(be);
-      }
-      el.appendChild(badges);
-
-      const nm=document.createElement("div"); nm.className="name"; nm.textContent=lbl.name; el.appendChild(nm);
-      const meta=document.createElement("div"); meta.className="meta"; meta.textContent=lbl.meta; el.appendChild(meta);
-
-      if(inst.owner==="P1"){
-        const actions=document.createElement("div"); actions.className="cardActions";
-        const swapBtn=document.createElement("button");
-        swapBtn.className="miniBtn swap";
-        swapBtn.textContent = state.heroSwap.active ? "キャンセル" : "入れ替え";
-        swapBtn.disabled = (inst.owner!==state.active) || isHeroKO(inst) || state.perTurn.P1.heroSwapUsed || manaAvailable("P1")<1 || state.targeting.active;
-        swapBtn.addEventListener("click", (ev)=>{
-          ev.stopPropagation();
-          if(state.heroSwap.active) cancelHeroSwap();
-          else beginHeroSwap("P1", rowName, idx);
-        });
-        actions.appendChild(swapBtn);
-        el.appendChild(actions);
-      }
-      return el;
-    }
-
-    if(p.heroFront.length===0){
-      const ph=document.createElement("div"); ph.className="slot"; ph.textContent="（前衛なし）"; frontRow.appendChild(ph);
-    }else{
-      p.heroFront.forEach((inst,i)=>frontRow.appendChild(heroCard(inst,"front",i)));
-    }
-
-    if(p.heroBack.length===0){
-      const ph=document.createElement("div"); ph.className="slot"; ph.textContent="（後衛なし）"; backRow.appendChild(ph);
-    }else{
-      p.heroBack.forEach((inst,i)=>backRow.appendChild(heroCard(inst,"back",i)));
-    }
-  }
-
   function renderHand(){
-    dom.handP1.innerHTML="";
-    const p1=state.players.P1;
-    const max=Math.max(7,p1.hand.length);
+    const container = dom.p1Hand;
+    if(!container) return;
+    container.innerHTML = "";
+    const arr = state.players.P1.hand;
+    const max = Math.max(10, arr.length);
     for(let i=0;i<max;i++){
-      const inst=p1.hand[i];
-      if(!inst){ const ph=document.createElement("div"); ph.className="slot"; ph.textContent="—"; dom.handP1.appendChild(ph); continue; }
-      const lbl=cardLabel(inst,"P1");
-      const el=document.createElement("div"); el.className="card";
-      const ref={owner:"P1", zone:Z.HAND, index:i};
-
-      if(state.targeting.active){
-        el.classList.add("dim");
+      const inst = arr[i] || null;
+      const el = document.createElement("div");
+      el.className = "slot" + (inst ? " fill" : "");
+      el.style.height = "78px";
+      if(!inst){
+        el.innerHTML = `<div class="t">空</div>`;
+      }else{
+        const d = defOf(inst);
+        const ctype = String(d?.cardType||"").toUpperCase();
+        const name = d?.name || inst.id;
+        const cost = (d?.cost!=null) ? `Cost:${d.cost}` : "";
+        el.innerHTML = `
+          <div class="t">${esc(name)}</div>
+          <div class="m">${esc(ctype)} ${cost ? " / "+esc(cost) : ""}</div>
+          <div class="b muted">タップで詳細</div>
+        `;
+        el.addEventListener("click", ()=>openDetails({owner:"P1", zone:Z.HAND, index:i}));
       }
-
-      el.addEventListener("click", ()=>{ if(!state.targeting.active) openCardDetails(ref); });
-
-      const badges=document.createElement("div"); badges.className="badges";
-      for(const b of lbl.badges){
-        const be=document.createElement("span"); be.className="badge "+(b.cls||""); be.textContent=b.t; badges.appendChild(be);
-      }
-      el.appendChild(badges);
-      const nm=document.createElement("div"); nm.className="name"; nm.textContent=lbl.name; el.appendChild(nm);
-      const meta=document.createElement("div"); meta.className="meta"; meta.textContent=lbl.meta; el.appendChild(meta);
-      dom.handP1.appendChild(el);
+      container.appendChild(el);
     }
   }
 
-  function render(){
-    updateTop();
-    renderSlotsRow(dom.supportP2, state.players.P2.support, "P1", Z.SUP);
-    // opponent instance always facedown
-    renderSlotsRow(dom.instanceP2, state.players.P2.instance.map(x=>x?({...x,faceDown:true}):null), "P1", Z.INST);
-    renderHeroGrid(dom.heroP2, "P2", "P1");
-    renderSlotsRow(dom.monsterP2, state.players.P2.monster, "P1", Z.MON);
-
-    renderSlotsRow(dom.monsterP1, state.players.P1.monster, "P1", Z.MON);
-    renderHeroGrid(dom.heroP1, "P1", "P1");
-    // your instance shown facedown too (reveal only on activate)
-    renderSlotsRow(dom.instanceP1, state.players.P1.instance.map(x=>x?({...x,faceDown:true}):null), "P1", Z.INST);
-    renderSlotsRow(dom.supportP1, state.players.P1.support, "P1", Z.SUP);
-    renderHand();
-  }
-
-  // ---------- Modal ----------
-  function openModal(title, bodyHtml){
-    dom.modalTitle.textContent=title;
-    dom.modalBody.innerHTML=bodyHtml;
-    dom.modalBackdrop.style.display="flex";
-  }
   function closeModal(){
-    dom.modalBackdrop.style.display="none";
-    dom.modalBody.innerHTML="";
+    if(!dom.modalBackdrop) return;
+    dom.modalBackdrop.style.display = "none";
+    state.modal.open=false;
+    state.modal.ref=null;
+  }
+  function openModal(title, html){
+    if(dom.modalTitle) dom.modalTitle.textContent = title || "";
+    if(dom.modalBody) dom.modalBody.innerHTML = html || "";
+    if(dom.modalBackdrop) dom.modalBackdrop.style.display = "flex";
+    state.modal.open=true;
   }
 
-  function openCardDetails(ref){
-    const inst = getInstByRef(ref);
+  function openDetails(ref){
+    const {owner, zone, index} = ref;
+    const p = state.players[owner];
+    let inst=null;
+    if(zone===Z.HAND) inst = p.hand[index];
+    else if(zone===Z.MON) inst = p.monster[index];
+    else if(zone===Z.SUP) inst = p.support[index];
+    else if(zone===Z.INST) inst = p.instance[index];
+    else if(zone===Z.HERO_F) inst = p.heroFront[index];
+    else if(zone===Z.HERO_B) inst = p.heroBack[index];
     if(!inst) return;
+
     const d = defOf(inst);
-    const type = d ? normType(d) : "UNKNOWN";
-    ensureStats(inst);
-
-    const viewer = "P1";
+    const ctype = String(d?.cardType||"").toUpperCase();
+    const viewer="P1";
     const facedown = (viewer !== inst.owner) && inst.faceDown;
-    const header = facedown ? "（伏せカード）" : (d?.name ?? inst.id);
-    const meta = facedown ? "" : `${type} / Cost:${d?.cost ?? 0}`;
-    let stats="";
+
+    const title = facedown ? "（伏せカード）" : (d?.name || inst.id);
+    const meta = facedown ? "" : `${ctype}${d?.rarity ? " / "+d.rarity : ""}${d?.cost!=null ? " / Cost:"+d.cost : ""}`;
+
+    let stats = "";
     if(!facedown){
-      if(type==="MONSTER") stats=`ATK:${d?.atk ?? "-"} / HP:${inst._hp ?? (d?.hp ?? "-")}`;
-      if(type==="HERO") stats=`LP:${inst._lp ?? (d?.lp ?? "-")}`;
-      if(type==="SUPPORT") stats=`LP:${d?.lp ?? 1}`;
-    }
-    const text = facedown ? "" : (d?.text ?? "");
-
-    // action buttons (minimal for targeting)
-    const buttons = [];
-    const effect = d?.effect ?? null;
-
-    // we allow "activate" only if effect exists and has supported target
-    const supportedTargets = new Set(["enemyMonsterOne","allyMonsterOne","enemyHeroFrontOne","allyHeroFrontOne"]);
-    const hasTargetedEffect = effect && supportedTargets.has(String(effect.target ?? ""));
-    const cost = Number(d?.cost ?? 0);
-
-    if(inst.owner==="P1" && state.active==="P1" && !state.targeting.active){
-      if(type==="SPELL" || type==="SUPPORT" || type==="INSTANCE" || type==="MONSTER"){
-        if(hasTargetedEffect){
-          buttons.push(`<button class="primary" data-act="activate">発動（対象選択）</button>`);
-        }else if(effect){
-          buttons.push(`<button class="primary" data-act="activateNoTarget">発動（対象なし/未対応）</button>`);
-        }
-      }
+      if(ctype==="MONSTER") stats = `ATK:${d?.atk ?? "-"} / HP:${d?.hp ?? "-"}`;
+      if(ctype==="HERO") stats = `LP:${inst._lp!=null ? inst._lp : (d?.lp ?? "-")}`;
+      if(ctype==="SUPPORT") stats = `LP:${d?.lp ?? 1}`;
     }
 
-    // hero controls (swap + test)
-    let heroControls = "";
-    if(type==="HERO" && inst.owner==="P1"){
-      const rowName = (ref.zone===Z.HERO_F) ? "front" : "back";
-      const swapDisabled = (inst.owner!==state.active) || isHeroKO(inst) || state.perTurn.P1.heroSwapUsed || manaAvailable("P1")<1 || state.targeting.active;
-      heroControls = `
-        <div class="hr"></div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button class="warn" ${swapDisabled?"disabled":""} data-act="beginSwap" data-row="${rowName}" data-idx="${ref.index}">入れ替え開始（1マナ）</button>
-          <button ${state.heroSwap.active?"":"disabled"} data-act="cancelSwap">入れ替えキャンセル</button>
-          <button data-act="testKO">（テスト）LP=0</button>
-          <button data-act="testHeal">（テスト）LP+2</button>
-        </div>
-      `;
-    }
+    const body = `
+      <div class="muted" style="font-size:12px">${esc(meta)}</div>
+      <div class="hr"></div>
+      <div style="font-size:13px">${esc(stats)}</div>
+      <div class="hr"></div>
+      <div class="actionsRow">
+        ${owner==="P1" && zone===Z.HAND ? `<button class="primary" data-act="toMana">マナへ</button>` : ``}
+        ${owner==="P1" && zone===Z.HAND && ctype==="MONSTER" ? `<button class="primary" data-act="summon">召喚</button>` : ``}
+        ${owner==="P1" && zone===Z.HAND && (ctype==="SPELL"||ctype==="SUPPORT") ? `<button class="primary" data-act="set">セット</button>` : ``}
+        ${(owner==="P1" && (zone===Z.SUP || zone===Z.INST || zone===Z.HAND) && (ctype==="SPELL"||ctype==="SUPPORT"||ctype==="INSTANCE")) ? `<button class="primary" data-act="activate">発動</button>` : ``}
+        <button data-act="close">閉じる</button>
+      </div>
+      <div class="hr"></div>
+      <div class="muted" style="font-size:12px">Owner:${esc(owner)} / Zone:${esc(zone)} / UID:${esc(inst.uid)}</div>
+    `;
+    state.modal.ref = ref;
+    openModal(title, body);
 
-    openModal(header, `
-      <div class="small">${esc(meta)}</div>
-      <div class="hr"></div>
-      <div>${esc(stats)}</div>
-      <div class="hr"></div>
-      <div class="small">${esc(text)}</div>
-      <div class="hr"></div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">${buttons.join("") || `<span class="small">（発動UIは、target付き効果のみ対象選択に入ります）</span>`}</div>
-      ${heroControls}
-      <div class="hr"></div>
-      <div class="small">Owner:${esc(inst.owner)} / Zone:${esc(ref.zone)} / Index:${ref.index}</div>
-    `);
-
-    // bind modal actions
-    dom.modalBody.querySelectorAll("[data-act]").forEach(btn=>{
+    // bind modal action buttons
+    dom.modalBody.querySelectorAll("button[data-act]").forEach(btn=>{
       btn.addEventListener("click", ()=>{
-        const act=btn.getAttribute("data-act");
-        if(act==="beginSwap"){
-          const row=btn.getAttribute("data-row");
-          const idx=Number(btn.getAttribute("data-idx"));
-          closeModal();
-          beginHeroSwap("P1", row, idx);
-        }else if(act==="cancelSwap"){
-          cancelHeroSwap();
-          closeModal();
-                }else if(act==="koSwapYes"){
-          const info = state._koSwap;
-          state._koSwap = null;
-          closeModal();
-          if(info){ beginHeroSwap(info.owner, Z.HEROF, info.deadIndex, true); }
-        }else if(act==="koSwapNo"){
-          state._koSwap = null;
-          closeModal();
-}else if(act==="testKO"){
-          inst._lp = 0;
-          inst.tapped = true;
-          log("（テスト）ヒーローを戦闘不能にしました。");
-          render();
-          closeModal();
-        }else if(act==="testHeal"){
-          inst._lp = Math.max(0, Number(inst._lp ?? 0) + 2);
-          if(inst._lp > 0) inst.tapped = false;
-          log("（テスト）ヒーローを回復しました。");
-          render();
-          closeModal();
-        }else if(act==="activate"){
-          closeModal();
-          // cost pay (暫定)
-          if(cost>0){
-            if(!canPay(cost)){ log(`マナ不足（必要${cost} / 残${manaAvailable("P1")}）。`); return; }
-            pay(cost);
-            log(`コスト支払い: ${cost}（マナをタップ）`);
-          }
-          // reveal instance on activate
-          if(type==="INSTANCE") inst.faceDown=false;
-          beginTargeting(ref, effect);
-        }else if(act==="activateNoTarget"){
-          closeModal();
-          log("この効果は target 形式が未対応です（v28では対象選択のみ実装）。");
-        }
+        const act = btn.getAttribute("data-act");
+        if(act==="close"){ closeModal(); return; }
+        if(!state.modal.ref) return;
+        if(act==="toMana") actToMana(state.modal.ref);
+        if(act==="summon") actSummon(state.modal.ref);
+        if(act==="set") actSet(state.modal.ref);
+        if(act==="activate") actActivate(state.modal.ref);
       });
     });
   }
 
-  // ---------- Events ----------
-  function bind(){
-    dom.btnSetup.addEventListener("click", openNewDuelFlow);
-    if(dom.btnNewDuel) dom.btnNewDuel.addEventListener("click", openNewDuelFlow);
-    if(dom.flowClose) dom.flowClose.addEventListener("click", ()=>{ showFlow(false); showMainApp(true); try{ if(!state.started){ setupDemo(); state.started=true; } }catch(e){} render(); });
+  function requireActive(owner){
+    if(owner !== state.active){ log("自分の手番ではありません。"); return false; }
+    return true;
+  }
 
-    // Flow event delegation
-    if(dom.flowBody){
-      dom.flowBody.addEventListener("click", (ev)=>{
-        const t = ev.target;
-        if(!(t instanceof HTMLElement)) return;
-        const id = t.getAttribute("data-id");
-        const act = t.getAttribute("data-flow");
+  function actToMana(ref){
+    const {owner, zone, index} = ref;
+    if(!requireActive(owner)) return;
+    if(zone!==Z.HAND){ log("手札からのみマナ化できます。"); return; }
+    if(state.perTurn[owner].manaSet){ log("このターンは既にマナ化しました。"); return; }
 
-        if(t.id==="flowDeckClear"){ flow.selectedHeroIds=[]; flow.frontIds=[]; flow.backIds=[]; renderFlowDeck(); return; }
-        if(t.id==="flowDeckNext"){ renderFlowPlacement(); return; }
-        if(t.id==="flowPlaceBack"){ renderFlowDeck(); return; }
-        if(t.id==="flowPlaceNext"){ renderFlowCoin(); return; }
-        if(t.id==="flowCoinBack"){ renderFlowPlacement(); return; }
-        if(t.id==="flowToss"){ tossCoin(); return; }
-        if(t.id==="flowStartDuel"){ setupDuelFromSelection(); return; }
+    const p = state.players[owner];
+    const inst = p.hand[index];
+    if(!inst) return;
+    p.hand.splice(index,1);
+    inst.zone = Z.MANA;
+    inst.tapped = false;
+    p.mana.push(inst);
+    state.perTurn[owner].manaSet = true;
+    log(`マナへ: ${defOf(inst)?.name || inst.id}`);
+    closeModal();
+    render();
+  }
 
-        if(act==="toggleHero" && id){ flowToggleHero(id); return; }
-        if(act==="setFront" && id){ flowSetFront(id); return; }
-        if(act==="setBack" && id){ flowSetBack(id); return; }
-      });
+  function actSummon(ref){
+    const {owner, zone, index} = ref;
+    if(!requireActive(owner)) return;
+    if(zone!==Z.HAND){ log("召喚は手札からのみ。"); return; }
+    if(state.phase!=="MAIN"){ log("召喚はMAINのみ。"); return; }
+
+    const p = state.players[owner];
+    const inst = p.hand[index];
+    const d = defOf(inst);
+    if(!d) return;
+    const ctype = String(d.cardType).toUpperCase();
+    if(ctype!=="MONSTER"){ log("モンスター以外は召喚できません。"); return; }
+    const cost = Number(d.cost||0);
+    if(manaAvailable(owner) < cost){ log(`マナ不足（必要${cost} / 残${manaAvailable(owner)}）。`); return; }
+
+    const slot = p.monster.findIndex(x=>!x);
+    if(slot<0){ log("モンスターゾーンが満杯です。"); return; }
+
+    tapMana(owner, cost);
+    p.hand.splice(index,1);
+    inst.zone = Z.MON;
+    inst.summonSick = true;
+    p.monster[slot]=inst;
+    log(`召喚: ${d.name}（Cost${cost}）`);
+    closeModal();
+    render();
+  }
+
+  function actSet(ref){
+    const {owner, zone, index} = ref;
+    if(!requireActive(owner)) return;
+    if(zone!==Z.HAND){ log("セットは手札からのみ。"); return; }
+    if(state.phase!=="MAIN"){ log("セットはMAINのみ。"); return; }
+
+    const p = state.players[owner];
+    const inst = p.hand[index];
+    const d = defOf(inst);
+    if(!d) return;
+    const ctype = String(d.cardType).toUpperCase();
+    if(!(ctype==="SPELL" || ctype==="SUPPORT")){ log("魔法/サポートのみセット可能。"); return; }
+
+    const cost = Number(d.cost||0);
+    if(manaAvailable(owner) < cost){ log(`マナ不足（必要${cost} / 残${manaAvailable(owner)}）。`); return; }
+
+    const slot = p.support.findIndex(x=>!x);
+    if(slot<0){ log("サポート・魔法ゾーンが満杯です。"); return; }
+
+    tapMana(owner, cost);
+    p.hand.splice(index,1);
+    inst.zone = Z.SUP;
+    inst.faceDown = true;
+    p.support[slot]=inst;
+    log(`セット: ${d.name}（Cost${cost}）`);
+    closeModal();
+    render();
+  }
+
+  function moveToGrave(inst){
+    const p = state.players[inst.owner];
+    inst.zone = Z.GRAVE;
+    inst.faceDown=false;
+    inst.tapped=false;
+    inst.summonSick=false;
+    p.grave.push(inst);
+  }
+
+  function actActivate(ref){
+    const {owner, zone, index} = ref;
+    if(!requireActive(owner)) return;
+
+    const p = state.players[owner];
+    let inst=null;
+    if(zone===Z.HAND) inst = p.hand[index];
+    else if(zone===Z.SUP) inst = p.support[index];
+    else if(zone===Z.INST) inst = p.instance[index];
+    else { log("この領域からは発動できません。"); return; }
+    if(!inst) return;
+
+    const d = defOf(inst);
+    const ctype = String(d?.cardType||"").toUpperCase();
+    const cost = Number(d?.cost||0);
+
+    // Instance: reveal on activate then banish (temporary: grave later)
+    if(ctype==="INSTANCE"){
+      if(zone!==Z.INST){ log("インスタンスはインスタンスゾーンからのみ。"); return; }
+      inst.faceDown=false;
+      log(`インスタンス発動: ${d?.name||inst.id}（※効果処理は次段）`);
+      // remove from field, send to banish per your rule
+      p.instance[index]=null;
+      inst.zone = Z.BANISH;
+      p.banish.push(inst);
+      closeModal();
+      render();
+      return;
     }
-    dom.btnReset.addEventListener("click", resetGame);
-    dom.btnEndTurn.addEventListener("click", endTurn);
 
-    dom.btnCloseModal.addEventListener("click", closeModal);
-    dom.modalBackdrop.addEventListener("click", (e)=>{ if(e.target===dom.modalBackdrop) closeModal(); });
+    // Spell / Support activation
+    if(ctype==="SPELL" || ctype==="SUPPORT"){
+      if(manaAvailable(owner) < cost){ log(`マナ不足（必要${cost} / 残${manaAvailable(owner)}）。`); return; }
+      tapMana(owner, cost);
 
-    dom.btnCancelTarget.addEventListener("click", ()=>cancelTargeting(true));
+      // If from hand: support should "activate and place" (設置型) later; for now, treat like spell -> grave.
+      // If from set zone: flip up and keep for support (設置) - we keep it on field.
+      const isSupport = (ctype==="SUPPORT");
+      const fromHand = (zone===Z.HAND);
+      const fromSet = (zone===Z.SUP);
 
-    window.addEventListener("keydown", (e)=>{
-      if(e.key==="Escape"){
-        if(state.targeting.active) cancelTargeting(true);
-        if(state.heroSwap.active) cancelHeroSwap();
-        closeModal();
+      if(fromHand){
+        p.hand.splice(index,1);
+      }else{
+        p.support[index]=null;
       }
+
+      inst.faceDown=false;
+      log(`発動: ${d?.name||inst.id}（Cost${cost}）`);
+
+      if(isSupport){
+        // place it faceup into first empty support slot
+        const slot = p.support.findIndex(x=>!x);
+        if(slot>=0){
+          inst.zone = Z.SUP;
+          p.support[slot]=inst;
+          log("→ サポートを設置しました。");
+        }else{
+          // if no space, drop to grave as fallback
+          moveToGrave(inst);
+          log("→ サポートゾーン満杯のため墓地へ（暫定）。");
+        }
+      }else{
+        moveToGrave(inst);
+      }
+
+      closeModal();
+      render();
+      return;
+    }
+
+    log("（このカードは発動未実装）");
+  }
+
+  function openPhasePicker(){
+    const items = PHASES.map(p=>{
+      const cur = (p===state.phase) ? "（現在）" : "";
+      return `<button class="pill primary" data-phase="${p}">${esc(p)} ${esc(cur)}</button>`;
+    }).join(" ");
+    openModal("フェイズ選択", `<div class="actionsRow">${items}</div><div class="hr"></div><div class="muted" style="font-size:12px">※プロトタイプのため任意遷移。</div>`);
+    dom.modalBody.querySelectorAll("button[data-phase]").forEach(b=>{
+      b.addEventListener("click", ()=>{
+        const p = b.getAttribute("data-phase");
+        if(PHASES.includes(p)){ state.phase=p; log("フェイズ: "+p); closeModal(); render(); }
+      });
     });
+  }
+
+  function endTurn(){
+    state.phase = "END";
+    state.active = (state.active==="P1") ? "P2" : "P1";
+    if(state.active==="P1") state.turn += 1;
+
+    state.perTurn[state.active].manaSet=false;
+    state.perTurn[state.active].heroSwap=false;
+
+    untapAllMana(state.active);
+
+    // clear summon sickness for active player's monsters
+    for(const c of state.players[state.active].monster){
+      if(c) c.summonSick=false;
+    }
+
+    state.phase = "DRAW";
+    log(`ターン交代: Active=${state.active} / Turn=${state.turn}`);
+    render();
+  }
+
+  function bindEvents(){
+    dom.btnDemo?.addEventListener("click", setupDemo);
+    dom.btnReset?.addEventListener("click", resetGame);
+    dom.btnPhase?.addEventListener("click", openPhasePicker);
+    dom.btnEnd?.addEventListener("click", endTurn);
+    dom.btnCloseModal?.addEventListener("click", closeModal);
+    dom.modalBackdrop?.addEventListener("click", (e)=>{ if(e.target===dom.modalBackdrop) closeModal(); });
   }
 
   async function init(){
-    dom.jsStatus.style.background = "var(--good)";
-    dom.jsStatus.textContent = `JS ready (${VERSION})`;
-    bind();
-
-    // Ensure flowRoot exists inside the flow modal (mobile-friendly)
-    if(!dom.flowRoot){
-      const holder = document.createElement("div");
-      holder.id = "flowRoot";
-      if(dom.flowBody){
-        dom.flowBody.innerHTML = "";
-        dom.flowBody.appendChild(holder);
-        dom.flowRoot = holder;
-      }
-    }
-
+    cacheDom();
+    updateJsStatus(true);
+    bindEvents();
     await loadDefs();
-    openNewDuelFlow();
     render();
   }
+
+  window.addEventListener("error", (e)=>{
+    console.error(e);
+    log("JS Error: " + (e.message||"unknown"));
+  });
+  window.addEventListener("unhandledrejection", (e)=>{
+    console.error(e);
+    log("Promise Rejection: " + (e.reason?.message||e.reason||"unknown"));
+  });
 
   if(document.readyState==="loading"){
     document.addEventListener("DOMContentLoaded", init, {once:true});
@@ -1948,7 +973,6 @@ function resetGame(){
     init();
   }
 })();
-
 </script>
 </body>
 </html>
