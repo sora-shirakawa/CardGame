@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
-<title>Card Game Prototype — v39</title>
+<title>Card Game Prototype — v40</title>
 <style>
   :root{
     --bg:#0b1020;
@@ -163,7 +163,8 @@
           <div class="stack">
             <div>
               <div class="zoneHead"><div class="zoneTitle">サポート・魔法</div><div class="zoneNote">最大10</div></div>
-              <div class="slotRow nowrap" id="p2Sup"></div>
+              <div class="slotRow nowrap" id="p2SupTop"></div>
+          <div class="slotRow nowrap" id="p2SupBot"></div>
             </div>
 
             <div>
@@ -187,7 +188,8 @@
 
             <div>
               <div class="zoneHead"><div class="zoneTitle">モンスター</div><div class="zoneNote">最大10</div></div>
-              <div class="slotRow nowrap" id="p2Mon"></div>
+              <div class="slotRow nowrap" id="p2MonTop"></div>
+          <div class="slotRow nowrap" id="p2MonBot"></div>
             </div>
           </div>
         </div>
@@ -204,7 +206,8 @@
           <div class="stack">
             <div>
               <div class="zoneHead"><div class="zoneTitle">モンスター</div><div class="zoneNote">最大10</div></div>
-              <div class="slotRow nowrap" id="p1Mon"></div>
+              <div class="slotRow nowrap" id="p1MonTop"></div>
+          <div class="slotRow nowrap" id="p1MonBot"></div>
             </div>
 
             <div>
@@ -228,7 +231,8 @@
 
             <div>
               <div class="zoneHead"><div class="zoneTitle">サポート・魔法</div><div class="zoneNote">最大10</div></div>
-              <div class="slotRow nowrap" id="p1Sup"></div>
+              <div class="slotRow nowrap" id="p1SupTop"></div>
+          <div class="slotRow nowrap" id="p1SupBot"></div>
             </div>
 
             <div>
@@ -287,7 +291,7 @@
 <script>
 (() => {
   "use strict";
-  const VERSION = "v39";
+  const VERSION = "v40";
 
   const $ = (id)=>document.getElementById(id);
   const esc = (s)=>String(s??"").replace(/[&<>"']/g, m => ({ "&":"&amp;","<":"&lt;",">":"&gt;", "\"":"&quot;","'":"&#39;" }[m]));
@@ -360,18 +364,22 @@
   }
 
   function cacheDom(){
-    dom.p1Mon = $("p1Mon");
+    dom.p1MonTop = $("p1MonTop");
+    dom.p1MonBot = $("p1MonBot");
     dom.p1HeroFront = $("p1HeroFront");
     dom.p1HeroBack = $("p1HeroBack");
     dom.p1Inst = $("p1Inst");
-    dom.p1Sup = $("p1Sup");
+    dom.p1SupTop = $("p1SupTop");
+    dom.p1SupBot = $("p1SupBot");
     dom.p1Hand = $("p1Hand");
 
-    dom.p2Mon = $("p2Mon");
+    dom.p2MonTop = $("p2MonTop");
+    dom.p2MonBot = $("p2MonBot");
     dom.p2HeroFront = $("p2HeroFront");
     dom.p2HeroBack = $("p2HeroBack");
     dom.p2Inst = $("p2Inst");
-    dom.p2Sup = $("p2Sup");
+    dom.p2SupTop = $("p2SupTop");
+    dom.p2SupBot = $("p2SupBot");
 
     dom.chipPhase = $("chipPhase");
     dom.chipTurn = $("chipTurn");
@@ -566,18 +574,18 @@
     if(dom.boxPhase) dom.boxPhase.textContent = state.phase;
 
     // opponent
-    renderRow(dom.p2Sup, state.players.P2.support, {owner:"P2", zone:Z.SUP, viewer:"P1", max:10});
+    renderSplit(dom.p2SupTop, dom.p2SupBot, state.players.P2.support, {owner:"P2", zone:Z.SUP, viewer:"P1"}, 5);
     renderRow(dom.p2Inst, state.players.P2.instance, {owner:"P2", zone:Z.INST, viewer:"P1", max:5});
     renderRow(dom.p2HeroBack, state.players.P2.heroBack, {owner:"P2", zone:Z.HERO_B, viewer:"P1", max:3});
     renderRow(dom.p2HeroFront, state.players.P2.heroFront, {owner:"P2", zone:Z.HERO_F, viewer:"P1", max:3});
-    renderRow(dom.p2Mon, state.players.P2.monster, {owner:"P2", zone:Z.MON, viewer:"P1", max:10});
+    renderSplit(dom.p2MonTop, dom.p2MonBot, state.players.P2.monster, {owner:"P2", zone:Z.MON, viewer:"P1"}, 5);
 
     // self
-    renderRow(dom.p1Mon, state.players.P1.monster, {owner:"P1", zone:Z.MON, viewer:"P1", max:10});
+    renderSplit(dom.p1MonTop, dom.p1MonBot, state.players.P1.monster, {owner:"P1", zone:Z.MON, viewer:"P1"}, 5);
     renderRow(dom.p1HeroFront, state.players.P1.heroFront, {owner:"P1", zone:Z.HERO_F, viewer:"P1", max:3});
     renderRow(dom.p1HeroBack, state.players.P1.heroBack, {owner:"P1", zone:Z.HERO_B, viewer:"P1", max:3});
     renderRow(dom.p1Inst, state.players.P1.instance, {owner:"P1", zone:Z.INST, viewer:"P1", max:5});
-    renderRow(dom.p1Sup, state.players.P1.support, {owner:"P1", zone:Z.SUP, viewer:"P1", max:10});
+    renderSplit(dom.p1SupTop, dom.p1SupBot, state.players.P1.support, {owner:"P1", zone:Z.SUP, viewer:"P1"}, 5);
     renderHand();
   }
 
@@ -636,10 +644,17 @@
           <div class="b">${esc(L.b)}</div>
           ${down ? `<span class="tag down">伏せ</span>` : ``}
         `;
-        el.addEventListener("click", ()=>openDetails({owner, zone, index:i}));
+        el.addEventListener("click", ()=>openDetails({owner, zone, index:i+offset}));
       }
       container.appendChild(el);
     }
+  }
+
+
+  function renderSplit(topEl, botEl, arr, opt, split=5){
+    const a = Array.isArray(arr) ? arr : [];
+    renderRow(topEl, a.slice(0, split), {...opt, max: split}, 0);
+    renderRow(botEl, a.slice(split, split+split), {...opt, max: split}, split);
   }
 
   function renderHand(){
