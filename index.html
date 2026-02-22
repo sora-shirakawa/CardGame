@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
-<title>Card Game Prototype — v44</title>
+<title>Card Game Prototype — v45</title>
 <style>
   :root{
     --bg:#0b1020;
@@ -142,6 +142,42 @@
   @media (orientation:portrait){
     #rotateHint{display:block}
   }
+
+
+/* v45: Landscape-first layout (PC/横画面を優先) */
+.wrap{
+  min-width: 0 !important;
+  width: min(1600px, 100%);
+}
+@media (min-width: 980px){
+  .fieldGrid > .stack{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap:12px;
+    align-items:start;
+  }
+  .fieldGrid > .stack > .zoneBox{
+    min-width: 0;
+  }
+}
+/* スマホ横(小さめ)でも2列に寄せる */
+@media (orientation: landscape) and (min-width: 740px){
+  .fieldGrid > .stack{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap:10px;
+  }
+}
+
+/* 右サイド（情報/ログ）を画面内に収める */
+.fieldGrid{
+  grid-template-columns: 1fr minmax(260px, 340px) !important;
+}
+@media (max-width: 980px){
+  .fieldGrid{
+    grid-template-columns: 1fr !important;
+  }
+}
 
 </style>
 </head>
