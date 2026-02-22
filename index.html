@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
-<title>Card Game Prototype — v37</title>
+<title>Card Game Prototype — v38</title>
 <style>
   :root{
     --bg:#0b1020;
@@ -184,7 +184,7 @@
 </style>
 </head>
 <body>
-<div id="jsStatus">JS未起動 (v32)</div>
+<div id="jsStatus">JS未起動 (v38)</div>
 <noscript><div style="background:#b45309;color:#fff;padding:10px 12px;font-weight:800">JavaScriptが無効です（noscript）</div></noscript>
 
 <div id="flowBackdrop" class="flowBackdrop">
@@ -309,9 +309,10 @@
 </div>
 
 <script>
+
 (() => {
   "use strict";
-  const VERSION = "v37";
+  const VERSION = "v38";
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (m) => ({ "&":"&amp;","<":"&lt;",">":"&gt;", "\"":"&quot;","'":"&#39;" }[m]));
   const now = () => new Date().toLocaleTimeString();
@@ -1927,10 +1928,10 @@ function resetGame(){
 
     // Ensure flowRoot exists inside the flow modal (mobile-friendly)
     if(!dom.flowRoot){
-      const holder = document.createElement(\"div\");
-      holder.id = \"flowRoot\";
+      const holder = document.createElement("div");
+      holder.id = "flowRoot";
       if(dom.flowBody){
-        dom.flowBody.innerHTML = \"\";
+        dom.flowBody.innerHTML = "";
         dom.flowBody.appendChild(holder);
         dom.flowRoot = holder;
       }
@@ -1947,6 +1948,7 @@ function resetGame(){
     init();
   }
 })();
+
 </script>
 </body>
 </html>
