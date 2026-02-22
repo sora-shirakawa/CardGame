@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
-<title>Card Game Prototype — v43</title>
+<title>Card Game Prototype — v44</title>
 <style>
   :root{
     --bg:#0b1020;
@@ -21,7 +21,7 @@
     --slotH: clamp(68px, 6.2vw, 92px);
 }
   *{box-sizing:border-box}
-  body{margin:0;background:
+  body{overflow-x:auto;margin:0;background:
       radial-gradient(1200px 600px at 40% -10%, rgba(125,211,252,.16), transparent),
       radial-gradient(900px 600px at 90% 10%, rgba(250,204,21,.10), transparent),
       var(--bg);
@@ -42,19 +42,13 @@
   button.primary{border-color:rgba(125,211,252,.35); box-shadow:0 0 0 1px rgba(125,211,252,.06) inset}
   .chip{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;background:rgba(255,255,255,.10);border:1px solid var(--line);font-size:12px}
 
-  .wrap{
-    display:grid;
-    grid-template-columns: minmax(0, 1fr) 360px;
-    gap:12px; padding:12px;
-    max-width:1200px; margin:0 auto;
-    align-items:start;
-  }
+  .wrap{display:grid;grid-template-columns:minmax(760px,1fr) 360px;gap:12px;padding:12px;width:min(1400px,100%);min-width:1120px;margin:0 auto}
   @media (max-width: 1100px){
     .wrap{grid-template-columns: 1fr;}
   }
   
   @media (min-width: 1400px){ .wrap{max-width:96vw;} }
-@media (max-width: 980px){ .wrap{grid-template-columns:1fr} }
+
 
   .panel{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); box-shadow: var(--shadow);; min-width:0;}
   .panel h2{margin:0;padding:12px 12px 0 12px;font-size:14px;opacity:.95}
@@ -142,9 +136,17 @@
   .muted{color:var(--muted)}
 .slot.selectable{outline:2px solid rgba(255,255,255,.55);}
 .slot.selectable:hover{filter:brightness(1.1);} 
+
+  #rotateHint{display:none;position:sticky;top:0;z-index:9998;background:rgba(17,24,39,.92);border-bottom:1px solid rgba(255,255,255,.12);
+              color:rgba(255,255,255,.92);padding:8px 12px;font-weight:800;font-size:12px}
+  @media (orientation:portrait){
+    #rotateHint{display:block}
+  }
+
 </style>
 </head>
 <body>
+<div id="rotateHint">横画面（ランドスケープ）を推奨します。縦画面では横スクロールで操作できます。</div>
 <div id="jsStatus">JS未起動（v43）</div>
 
 <header>
@@ -309,7 +311,7 @@
 <script>
 (() => {
   "use strict";
-  const VERSION = "v43";
+  const VERSION = "v44";
 
   const $ = (id)=>document.getElementById(id);
   const esc = (s)=>String(s??"").replace(/[&<>"']/g, m => ({ "&":"&amp;","<":"&lt;",">":"&gt;", "\"":"&quot;","'":"&#39;" }[m]));
