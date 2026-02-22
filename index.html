@@ -42,32 +42,27 @@
   button.primary{border-color:rgba(125,211,252,.35); box-shadow:0 0 0 1px rgba(125,211,252,.06) inset}
   .chip{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;background:rgba(255,255,255,.10);border:1px solid var(--line);font-size:12px}
 
-  .wrap{display:grid;grid-template-columns:minmax(760px,1fr) 360px;gap:12px;padding:12px;width:min(1400px,100%);min-width:1120px;margin:0 auto}
+  .wrap{min-width:0;width:100%;max-width:none;margin:0;padding:10px 12px;}
   @media (max-width: 1100px){
-    .wrap{grid-template-columns: 1fr;}
+    .wrap{min-width:0;width:100%;max-width:none;margin:0;padding:10px 12px;}
   }
   
-  @media (min-width: 1400px){ .wrap{max-width:96vw;} }
+  @media (min-width: 1400px){ .wrap{min-width:0;width:100%;max-width:none;margin:0;padding:10px 12px;} }
 
 
   .panel{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); box-shadow: var(--shadow);; min-width:0;}
   .panel h2{margin:0;padding:12px 12px 0 12px;font-size:14px;opacity:.95}
   .panel .inner{padding:12px}
 
-  .fieldGrid{
-    display:grid;
-    grid-template-columns: minmax(0, 1fr) 280px;
-    gap:12px;
-    align-items:start;
-  }
+  .fieldGrid{display:grid;grid-template-columns:1fr;gap:12px;}
   @media (max-width: 900px){
-    .fieldGrid{grid-template-columns: 1fr;}
+    .fieldGrid{display:grid;grid-template-columns:1fr;gap:12px;}
   .wrap > *{min-width:0;}
   .fieldGrid > *{min-width:0;}
   .panel .inner{min-width:0;}
 
   }
-  @media (max-width: 980px){ .fieldGrid{grid-template-columns:1fr} }
+  @media (max-width: 980px){ .fieldGrid{display:grid;grid-template-columns:1fr;gap:12px;} }
 
   .stack{display:flex;flex-direction:column;gap:10px}
 
@@ -145,40 +140,36 @@
 
 
 
-/* === v46 landscape-first layout (Excel準拠) === */
-.wrap{
-  width: 100%;
-  max-width: 1700px;
-  margin: 0 auto;
-  padding: 14px;
-  min-width: 0; /* override v44 min-width */
-}
-.appGrid{
-  display: grid;
-  grid-template-columns: 300px 1fr 360px;
-  gap: 14px;
-  align-items: start;
-}
+/* === v47 landscape-first layout (Excel準拠) === */
+.wrap{min-width:0;width:100%;max-width:none;margin:0;padding:10px 12px;}
+.appGrid{display:grid;grid-template-columns:280px minmax(640px,1fr) 340px;gap:12px;align-items:start;}
 .leftPanel .checkBox{ height: calc(100vh - 220px); min-height: 260px; }
 .centerPanel{ min-width: 0; }
-.centerPanel .inner.fieldGrid{ display: block; } /* disable old inner grid split */
+.centerPanel .inner.fieldGrid{display:grid;grid-template-columns:1fr;gap:12px;} /* disable old inner grid split */
 .rightPanel{ min-width: 0; }
 .rightPanel .stack{ gap: 10px; }
 @media (max-width: 1100px){
-  .appGrid{ grid-template-columns: 260px 1fr 320px; }
+  .appGrid{display:grid;grid-template-columns:280px minmax(640px,1fr) 340px;gap:12px;align-items:start;}
 }
 @media (max-width: 920px){
-  .appGrid{ grid-template-columns: 1fr; }
+  .appGrid{display:grid;grid-template-columns:280px minmax(640px,1fr) 340px;gap:12px;align-items:start;}
   .leftPanel .checkBox{ height: 220px; }
 }
 /* Prefer landscape play: when in portrait, keep controls below field to avoid self-field cut-off */
 @media (orientation: portrait){
-  .appGrid{ grid-template-columns: 1fr; }
+  .appGrid{display:grid;grid-template-columns:280px minmax(640px,1fr) 340px;gap:12px;align-items:start;}
   .leftPanel{ order: 3; }
   .rightPanel{ order: 2; }
   .centerPanel{ order: 1; }
 }
 
+
+@media (max-width: 1180px){
+  .appGrid{grid-template-columns:1fr; }
+  .leftPanel{order:3;}
+  .centerPanel{order:1;}
+  .rightPanel{order:2;}
+}
 </style>
 </head>
 <body>
