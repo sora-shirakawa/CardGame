@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
-<title>Card Game Prototype — v36</title>
+<title>Card Game Prototype — v37</title>
 <style>
   :root{
     --bg:#0b1020;
@@ -167,7 +167,10 @@
   .flowHead{position:sticky;top:0;z-index:10;display:flex;align-items:center;justify-content:space-between;gap:10px;
     padding:12px 14px;border-bottom:1px solid var(--line);background:linear-gradient(to bottom, rgba(12,18,36,.98), rgba(12,18,36,.86))}
   .flowTitle{font-weight:900}
-  .flowBody{padding:14px}
+  .flowBody{padding:14px
+    max-height: calc(90vh - 90px);
+    overflow:auto;
+}
   .flowGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
   @media (max-width:720px){.flowGrid{grid-template-columns:1fr}}
   .flowCard{border:1px solid var(--line);background:rgba(255,255,255,.05);border-radius:14px;padding:10px;display:flex;gap:10px;justify-content:space-between;align-items:center}
@@ -181,7 +184,7 @@
 </style>
 </head>
 <body>
-<div id="jsStatus">JS未起動 (v36)</div>
+<div id="jsStatus">JS未起動 (v32)</div>
 <noscript><div style="background:#b45309;color:#fff;padding:10px 12px;font-weight:800">JavaScriptが無効です（noscript）</div></noscript>
 
 <div id="flowBackdrop" class="flowBackdrop">
@@ -308,7 +311,7 @@
 <script>
 (() => {
   "use strict";
-  const VERSION = "v33";
+  const VERSION = "v37";
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (m) => ({ "&":"&amp;","<":"&lt;",">":"&gt;", "\"":"&quot;","'":"&#39;" }[m]));
   const now = () => new Date().toLocaleTimeString();
@@ -1877,7 +1880,7 @@ function resetGame(){
   function bind(){
     dom.btnSetup.addEventListener("click", openNewDuelFlow);
     if(dom.btnNewDuel) dom.btnNewDuel.addEventListener("click", openNewDuelFlow);
-    if(dom.flowClose) dom.flowClose.addEventListener("click", ()=>{ showFlow(false); });
+    if(dom.flowClose) dom.flowClose.addEventListener("click", ()=>{ showFlow(false); showMainApp(true); try{ if(!state.started){ setupDemo(); state.started=true; } }catch(e){} render(); });
 
     // Flow event delegation
     if(dom.flowBody){
