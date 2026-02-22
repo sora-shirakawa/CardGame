@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
-<title>Card Game Prototype — v33</title>
+<title>Card Game Prototype — v36</title>
 <style>
   :root{
     --bg:#0b1020;
@@ -210,6 +210,7 @@
       <span class="chip" id="manaChip">P1 Mana: 0 (0 untapped)</span>
     </div>
     <div class="row">
+      <button id="btnNewDuel">新規デュエル</button>
       <button class="primary" id="btnSetup">デモセットアップ</button>
       <button id="btnReset">リセット</button>
       <button id="btnEndTurn">ターン終了</button>
@@ -320,11 +321,13 @@
     flowSub: $("flowSub"),
     flowStepChip: $("flowStepChip"),
     flowBody: $("flowBody"),
+    flowRoot: $("flowRoot"),
     flowClose: $("flowClose"),
     phaseChip: $("phaseChip"),
     turnChip: $("turnChip"),
     manaChip: $("manaChip"),
     btnSetup: $("btnSetup"),
+    btnNewDuel: $("btnNewDuel"),
     btnReset: $("btnReset"),
     btnEndTurn: $("btnEndTurn"),
     log: $("log"),
@@ -504,7 +507,25 @@
     return Number(monInst._hp ?? 0) <= 0;
   }
 
-  async function loadDefs(){
+  
+  function ensureMinHeroes(min=4){
+    const heroes = getAllHeroes();
+    if(heroes.length >= min) return;
+    const base = heroes[0] || { id:"H_AUTO_BASE", name:"仮ヒーロー", type:"hero", lp:5, rarity:"N", text:"（仮）" };
+    for(let i=heroes.length;i<min;i++){
+      const id = `H_AUTO_${String(i+1).padStart(3,"0")}`;
+      if(state.defsById.has(id)) continue;
+      const d = JSON.parse(JSON.stringify(base));
+      d.id = id;
+      d.name = (base.name ? base.name : "仮ヒーロー") + `（自動${i+1}）`;
+      d.type = "hero";
+      d.cardType = "HERO";
+      if(d.lp==null) d.lp = 5;
+      if(!Array.isArray(d.tags)) d.tags = ["英雄"];
+      state.defsById.set(id, d);
+    }
+  }
+async function loadDefs(){
     try{
       const url = new URL("cards.json", location.href);
       url.searchParams.set("t", Date.now());
@@ -519,6 +540,7 @@
       for(const d of arr){ if(d && d.id) map.set(d.id, d); }
       state.defsById = map;
       state.defsLoaded = true;
+      ensureMinHeroes(4);
       log(`cards.json loaded (${map.size} cards)`);
     }catch(err){
       log("cards.json 読み込み失敗: " + (err?.message ?? String(err)));
@@ -1854,6 +1876,7 @@ function resetGame(){
   // ---------- Events ----------
   function bind(){
     dom.btnSetup.addEventListener("click", openNewDuelFlow);
+    if(dom.btnNewDuel) dom.btnNewDuel.addEventListener("click", openNewDuelFlow);
     if(dom.flowClose) dom.flowClose.addEventListener("click", ()=>{ showFlow(false); });
 
     // Flow event delegation
@@ -1898,6 +1921,18 @@ function resetGame(){
     dom.jsStatus.style.background = "var(--good)";
     dom.jsStatus.textContent = `JS ready (${VERSION})`;
     bind();
+
+    // Ensure flowRoot exists inside the flow modal (mobile-friendly)
+    if(!dom.flowRoot){
+      const holder = document.createElement(\"div\");
+      holder.id = \"flowRoot\";
+      if(dom.flowBody){
+        dom.flowBody.innerHTML = \"\";
+        dom.flowBody.appendChild(holder);
+        dom.flowRoot = holder;
+      }
+    }
+
     await loadDefs();
     openNewDuelFlow();
     render();
