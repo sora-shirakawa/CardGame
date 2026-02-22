@@ -124,6 +124,8 @@
   .checkBox .k{font-weight:900}
   .checkBox .v{margin-top:6px;font-size:12px;color:var(--muted)}
   .muted{color:var(--muted)}
+.slot.selectable{outline:2px solid rgba(255,255,255,.55);}
+.slot.selectable:hover{filter:brightness(1.1);} 
 </style>
 </head>
 <body>
@@ -291,7 +293,7 @@
 <script>
 (() => {
   "use strict";
-  const VERSION = "v40";
+  const VERSION = "v41";
 
   const $ = (id)=>document.getElementById(id);
   const esc = (s)=>String(s??"").replace(/[&<>"']/g, m => ({ "&":"&amp;","<":"&lt;",">":"&gt;", "\"":"&quot;","'":"&#39;" }[m]));
@@ -564,7 +566,93 @@
     render();
   }
 
-  function render(){
+  // ---------- Hero swap (front/back) ----------
+function heroArray(p, zone){
+  return (zone===Z.HERO_F) ? p.heroFront : p.heroBack;
+}
+function countHeroesRow(arr){
+  return arr.reduce((n,c)=> n + (c?1:0), 0);
+}
+function isHeroKO(inst){
+  return !!(inst && inst.ko);
+}
+
+function actHeroSwapStart(ref){
+  const {owner, zone, index} = ref;
+  if(!(zone===Z.HERO_F || zone===Z.HERO_B)){ log("ヒーローゾーンでのみ入れ替え可能です。"); return; }
+  if(!requireActive(owner)) return;
+  if(state.phase!=="MAIN"){ log("ヒーロー入れ替えはMAINのみです。"); return; }
+  if(state.perTurn[owner].heroSwapUsed){ log("このターンは既にヒーロー入れ替えを行いました。"); return; }
+  if(manaAvailable(owner) < 1){ log("マナ不足（入れ替えは1マナ）。"); return; }
+
+  const p = state.players[owner];
+  const arr = heroArray(p, zone);
+  const inst = arr[index];
+  if(!inst){ log("空スロットからは開始できません。"); return; }
+  if(isHeroKO(inst)){ log("戦闘不能ヒーローは入れ替えできません。"); return; }
+
+  state.ui.heroSwapFrom = {owner, zone, index};
+  closeModal();
+  log("入れ替え先のヒーロー（または空スロット）を選択してください。");
+  render();
+}
+
+function actHeroSwapSelectTarget(targetRef){
+  const from = state.ui.heroSwapFrom;
+  if(!from) return false;
+
+  const owner = from.owner;
+  if(targetRef.owner !== owner) { log("自分のヒーローのみ入れ替え対象です。"); return true; }
+  if(!(targetRef.zone===Z.HERO_F || targetRef.zone===Z.HERO_B)) { log("ヒーローゾーンを選択してください。"); return true; }
+
+  const p = state.players[owner];
+  const fromArr = heroArray(p, from.zone);
+  const toArr   = heroArray(p, targetRef.zone);
+  const a = fromArr[from.index];
+  const b = toArr[targetRef.index];
+
+  if(!a){ state.ui.heroSwapFrom=null; log("入れ替え元が無効になりました。"); render(); return true; }
+  if(isHeroKO(a)){ state.ui.heroSwapFrom=null; log("戦闘不能ヒーローは入れ替えできません。"); render(); return true; }
+  if(b && isHeroKO(b)){ log("戦闘不能ヒーローとは入れ替えできません。"); return true; }
+
+  if(from.zone===targetRef.zone && from.index===targetRef.index){
+    state.ui.heroSwapFrom = null;
+    log("入れ替えをキャンセルしました。");
+    render();
+    return true;
+  }
+
+  const fFront = p.heroFront.slice();
+  const fBack  = p.heroBack.slice();
+
+  const getArr = (zone)=> (zone===Z.HERO_F ? fFront : fBack);
+  const arrA = getArr(from.zone);
+  const arrB = getArr(targetRef.zone);
+
+  arrA[from.index] = b || null;
+  arrB[targetRef.index] = a;
+
+  if(countHeroesRow(fFront) < 1 || countHeroesRow(fBack) < 1){
+    log("前衛・後衛は最低1枚ずつ必要です。");
+    return true;
+  }
+
+  if(!tapMana(owner, 1)){ log("マナ不足（入れ替えは1マナ）。"); return true; }
+  state.perTurn[owner].heroSwapUsed = true;
+
+  fromArr[from.index] = b || null;
+  toArr[targetRef.index] = a;
+
+  if(a){ a.zone = targetRef.zone; }
+  if(b){ b.zone = from.zone; }
+
+  state.ui.heroSwapFrom = null;
+  log("ヒーローを入れ替えました（1マナ消費）。");
+  render();
+  return true;
+}
+
+function render(){
     // chips
     if(dom.chipPhase) dom.chipPhase.textContent = "PHASE: " + state.phase;
     if(dom.chipTurn) dom.chipTurn.textContent = "TURN: " + state.turn;
