@@ -691,53 +691,365 @@
   function openNewDuelFlow(){
     showMainApp(false);
     showFlow(true);
-    if(flow.selectedHeroIds.length!==4){
-      const heroes = getAllHeroes();
-      flow.selectedHeroIds = heroes.slice(0,4).map(h=>h.id);
+
+    // Deck edit: pick exactly 4 heroes (duplicates allowed if hero pool is small)
+    if(!flow.heroCounts){ flow.heroCounts = {}; }
+    const heroes = getAllHeroes();
+    // If nothing selected yet, prefill with first hero up to 4
+    const total = Object.values(flow.heroCounts).reduce((a,b)=>a+(b|0),0);
+    if(total===0 && heroes.length){
+      flow.heroCounts = {};
+      flow.heroCounts[heroes[0].id] = 4; // default: 4 copies of first hero
     }
     renderFlowDeck();
   }
 
-  function flowToggleHero(id){
+  function getAllHeroes(){
+    const out = [];
+    for(const d of state.defsById.values()){
+      const t = (d.cardType || d.type || "").toString().toUpperCase();
+      if(t==="HERO" || t==="HERO_CARD" || t==="HEROES" || t==="HEROE" || t==="HERO"){
+        out.push(d);
+      }
+      if((d.type||"").toString().toLowerCase()==="hero") out.push(d);
+    }
+    // Dedup by id
+    const map = new Map();
+    for(const d of out){ if(d && d.id) map.set(d.id,d); }
+    return Array.from(map.values());
+  }
+
+  function flowTotalPicked(){
+    if(!flow.heroCounts) return 0;
+    let n=0;
+    for(const k in flow.heroCounts) n += (flow.heroCounts[k]|0);
+    return n;
+  }
+
+  function flowSetCount(id, next){
+    if(!flow.heroCounts) flow.heroCounts = {};
     const heroes = new Set(getAllHeroes().map(h=>h.id));
     if(!heroes.has(id)) return;
 
-    const s = new Set(flow.selectedHeroIds);
-    if(s.has(id)) s.delete(id);
-    else { if(s.size>=4) return; s.add(id); }
-    flow.selectedHeroIds = [...s];
-    flow.frontIds = flow.frontIds.filter(x=>x!==id);
-    flow.backIds  = flow.backIds.filter(x=>x!==id);
+    const cur = flow.heroCounts[id] | 0;
+    const total = flowTotalPicked();
+    const clamped = Math.max(0, Math.min(4, next|0));
+
+    // Adjust with global cap 4
+    let desiredTotal = total - cur + clamped;
+    if(desiredTotal > 4){
+      // reduce to fit
+      const allow = 4 - (total - cur);
+      flow.heroCounts[id] = Math.max(0, allow);
+    }else{
+      flow.heroCounts[id] = clamped;
+    }
+
+    // Clean zeros
+    if(flow.heroCounts[id]===0) delete flow.heroCounts[id];
+
     renderFlowDeck();
   }
 
-  function flowSetFront(id){
-    const s = new Set(flow.selectedHeroIds);
-    if(!s.has(id)) return;
-    const f = new Set(flow.frontIds);
-    const b = new Set(flow.backIds);
-    b.delete(id); f.add(id);
-    flow.frontIds = [...f]; flow.backIds=[...b];
-    renderFlowPlacement();
+  function flowExpandPickIds(){
+    const heroes = getAllHeroes();
+    const order = heroes.map(h=>h.id);
+    const ids = [];
+    for(const id of order){
+      const c = (flow.heroCounts && flow.heroCounts[id])|0;
+      for(let i=0;i<c;i++) ids.push(id);
+    }
+    // If still short (e.g., no heroes), fill with fallback hero if exists
+    if(ids.length<4 && order.length){
+      while(ids.length<4) ids.push(order[0]);
+    }
+    return ids.slice(0,4);
   }
 
-  function flowSetBack(id){
-    const s = new Set(flow.selectedHeroIds);
-    if(!s.has(id)) return;
-    const f = new Set(flow.frontIds);
-    const b = new Set(flow.backIds);
-    f.delete(id); b.add(id);
-    flow.frontIds=[...f]; flow.backIds=[...b];
-    renderFlowPlacement();
+  function renderFlowDeck(){
+    if(!dom.flowRoot) return;
+    const heroes = getAllHeroes();
+
+    const total = flowTotalPicked();
+    const poolNote = heroes.length>=4
+      ? "※4枚選択（重複可/不可はデッキルール次第。現在は重複可）"
+      : "※ヒーローの種類が4枚未満のため、重複選択を許可しています。";
+
+    const rows = heroes.map(h=>{
+      const cnt = (flow.heroCounts && flow.heroCounts[h.id])|0;
+      return `
+        <div class="flowCard">
+          <div class="flowCardLeft">
+            <div class="flowName">${esc(h.name || h.id)}</div>
+            <div class="flowMeta">LP:${esc(h.lp ?? h.LP ?? "-")} / ${esc(h.rarity ?? "")}</div>
+          </div>
+          <div class="flowCardRight">
+            <button class="pill" data-act="heroMinus" data-id="${esc(h.id)}" ${cnt<=0 ? "disabled":""}>−</button>
+            <div class="chip">${cnt}</div>
+            <button class="pill primary" data-act="heroPlus" data-id="${esc(h.id)}" ${total>=4 ? "disabled":""}>＋</button>
+          </div>
+        </div>
+      `;
+    }).join("") || `<div class="small muted">ヒーローカードが cards.json に存在しません。</div>`;
+
+    dom.flowRoot.innerHTML = `
+      <div class="flowBox">
+        <div class="flowHead">
+          <div>
+            <div class="flowTitle">1) デッキ編集：ヒーローを4枚選択 <span class="chip">STEP 1/3</span></div>
+            <div class="small muted">ヒーローはデュエル開始時に前衛/後衛へ配置します（前後衛は最低1枚ずつ）。</div>
+          </div>
+          <button class="pill" data-act="flowClose">閉じる</button>
+        </div>
+
+        <div class="flowBody">
+          <div class="row" style="justify-content:space-between;margin:8px 0 12px 0">
+            <div class="chip">選択: <b>${total}</b> / 4</div>
+            <div class="small muted">${poolNote}</div>
+          </div>
+          <div class="flowList">${rows}</div>
+        </div>
+
+        <div class="flowFoot">
+          <button class="pill" data-act="flowClear">選択解除</button>
+          <button class="pill primary" data-act="flowNextDeck" ${total===4 ? "" : "disabled"}>次へ</button>
+        </div>
+      </div>
+    `;
+
+    // Bind actions
+    dom.flowRoot.querySelectorAll("[data-act]").forEach(el=>{
+      const act = el.getAttribute("data-act");
+      el.addEventListener("click", ()=>{
+        if(act==="flowClose"){ showFlow(false); showMainApp(true); return; }
+        if(act==="flowClear"){ flow.heroCounts = {}; renderFlowDeck(); return; }
+        if(act==="heroPlus"){
+          const id = el.getAttribute("data-id"); 
+          const cur = (flow.heroCounts && flow.heroCounts[id])|0;
+          flowSetCount(id, cur+1); return;
+        }
+        if(act==="heroMinus"){
+          const id = el.getAttribute("data-id");
+          const cur = (flow.heroCounts && flow.heroCounts[id])|0;
+          flowSetCount(id, cur-1); return;
+        }
+        if(act==="flowNextDeck"){
+          flow.pickIds = flowExpandPickIds(); // length 4
+          flow.frontIdx = new Set();
+          flow.backIdx  = new Set();
+          flow.step = 2;
+          renderFlowPlacement();
+          return;
+        }
+      });
+    });
   }
 
-  function tossCoin(){
-    flow.tossed = true;
-    flow.firstPlayer = (Math.random()<0.5) ? "P1" : "P2";
-    renderFlowCoin();
+  function renderFlowPlacement(){
+    if(!dom.flowRoot) return;
+    const ids = flow.pickIds && flow.pickIds.length===4 ? flow.pickIds : flowExpandPickIds();
+    flow.pickIds = ids;
+
+    const rows = ids.map((id, idx)=>{
+      const d = state.defsById.get(id) || {id, name:id};
+      const inFront = flow.frontIdx && flow.frontIdx.has(idx);
+      const inBack  = flow.backIdx  && flow.backIdx.has(idx);
+      const pos = inFront ? "前衛" : inBack ? "後衛" : "未配置";
+      return `
+        <div class="flowCard">
+          <div class="flowCardLeft">
+            <div class="flowName">#${idx+1} ${esc(d.name || d.id)}</div>
+            <div class="flowMeta">LP:${esc(d.lp ?? d.LP ?? "-")} / ${esc(d.rarity ?? "")} / ${esc(d.id)}</div>
+          </div>
+          <div class="flowCardRight">
+            <button class="pill" data-act="toFront" data-idx="${idx}">前衛へ</button>
+            <button class="pill" data-act="toBack" data-idx="${idx}">後衛へ</button>
+            <div class="chip">${pos}</div>
+          </div>
+        </div>
+      `;
+    }).join("");
+
+    const frontN = flow.frontIdx ? flow.frontIdx.size : 0;
+    const backN  = flow.backIdx  ? flow.backIdx.size : 0;
+    const allAssigned = (frontN + backN) === 4;
+    const okMin = frontN>=1 && backN>=1;
+    const canNext = allAssigned && okMin;
+
+    dom.flowRoot.innerHTML = `
+      <div class="flowBox">
+        <div class="flowHead">
+          <div>
+            <div class="flowTitle">2) 配置：前衛/後衛を決める <span class="chip">STEP 2/3</span></div>
+            <div class="small muted">前衛/後衛は最低1枚ずつ必要です（前3後1、前1後3 など可）。</div>
+          </div>
+          <button class="pill" data-act="flowClose">閉じる</button>
+        </div>
+
+        <div class="flowBody">
+          <div class="row" style="gap:10px;margin:8px 0 12px 0">
+            <div class="chip">前衛: <b>${frontN}</b></div>
+            <div class="chip">後衛: <b>${backN}</b></div>
+            ${(!okMin && allAssigned) ? `<div class="small" style="color:rgba(255,200,200,.95);font-weight:800">※前衛/後衛が0枚の側があります</div>` : ``}
+          </div>
+          <div class="flowList">${rows}</div>
+        </div>
+
+        <div class="flowFoot">
+          <button class="pill" data-act="flowBack">戻る</button>
+          <button class="pill primary" data-act="flowNextPlace" ${canNext ? "" : "disabled"}>次へ</button>
+        </div>
+      </div>
+    `;
+
+    dom.flowRoot.querySelectorAll("[data-act]").forEach(el=>{
+      const act = el.getAttribute("data-act");
+      el.addEventListener("click", ()=>{
+        if(act==="flowClose"){ showFlow(false); showMainApp(true); return; }
+        if(act==="flowBack"){ flow.step=1; renderFlowDeck(); return; }
+        if(act==="toFront"){
+          const idx = parseInt(el.getAttribute("data-idx"),10);
+          if(!flow.frontIdx) flow.frontIdx = new Set();
+          if(!flow.backIdx) flow.backIdx = new Set();
+          flow.backIdx.delete(idx);
+          flow.frontIdx.add(idx);
+          renderFlowPlacement();
+          return;
+        }
+        if(act==="toBack"){
+          const idx = parseInt(el.getAttribute("data-idx"),10);
+          if(!flow.frontIdx) flow.frontIdx = new Set();
+          if(!flow.backIdx) flow.backIdx = new Set();
+          flow.frontIdx.delete(idx);
+          flow.backIdx.add(idx);
+          renderFlowPlacement();
+          return;
+        }
+        if(act==="flowNextPlace"){
+          flow.step = 3;
+          renderFlowFirstSecond();
+          return;
+        }
+      });
+    });
   }
 
-  function autoBuildOpponentHeroes(){
+  function renderFlowFirstSecond(){
+    if(!dom.flowRoot) return;
+    const coin = (flow.coinResult==null) ? "未決定" : (flow.coinResult===0 ? "表（P1先攻）" : "裏（P2先攻）");
+    dom.flowRoot.innerHTML = `
+      <div class="flowBox">
+        <div class="flowHead">
+          <div>
+            <div class="flowTitle">3) 先攻/後攻を決定 <span class="chip">STEP 3/3</span></div>
+            <div class="small muted">コイントス（仮）で先攻/後攻を決めます。</div>
+          </div>
+          <button class="pill" data-act="flowClose">閉じる</button>
+        </div>
+
+        <div class="flowBody">
+          <div class="chip" style="margin-bottom:10px">結果: <b>${coin}</b></div>
+          <button class="pill primary" data-act="coinToss" style="width:100%;padding:14px 12px;font-size:16px">コイントス</button>
+        </div>
+
+        <div class="flowFoot">
+          <button class="pill" data-act="flowBack2">戻る</button>
+          <button class="pill primary" data-act="flowStartDuel" ${(flow.coinResult==null) ? "disabled":""}>デュエル開始</button>
+        </div>
+      </div>
+    `;
+
+    dom.flowRoot.querySelectorAll("[data-act]").forEach(el=>{
+      const act = el.getAttribute("data-act");
+      el.addEventListener("click", ()=>{
+        if(act==="flowClose"){ showFlow(false); showMainApp(true); return; }
+        if(act==="flowBack2"){ flow.step=2; renderFlowPlacement(); return; }
+        if(act==="coinToss"){
+          flow.coinResult = Math.random()<0.5 ? 0 : 1;
+          renderFlowFirstSecond();
+          return;
+        }
+        if(act==="flowStartDuel"){
+          setupDuelFromSelection();
+          showFlow(false);
+          showMainApp(true);
+          return;
+        }
+      });
+    });
+  }
+function setupDemoNonHeroZones(){
+  // Instances (5 each)
+  const instIds = pickMany(d => String(d.cardType||d.type||"").toUpperCase()==="INSTANCE" || String(d.type||"").toLowerCase()==="instance", 5);
+  for(let i=0;i<5;i++){
+    const id = instIds[i] || (pickByType("INSTANCE")||"i_fallback_1");
+    const c1 = makeCardInst(id,"P1"); c1.zone=Z.INST; c1.faceDown=true; state.players.P1.instance[i]=c1;
+    const c2 = makeCardInst(id,"P2"); c2.zone=Z.INST; c2.faceDown=true; state.players.P2.instance[i]=c2;
+  }
+
+  // P1 hand
+  const handIds = pickMany(d => ["MONSTER","SPELL","SUPPORT","MAGIC"].includes(String(d.cardType||d.type||"").toUpperCase()) || ["monster","magic","support"].includes(String(d.type||"").toLowerCase()), 12);
+  while(handIds.length<5){
+    for(const d of state.defsById.values()){ if(d && d.id) { handIds.push(d.id); if(handIds.length>=5) break; } }
+  }
+  state.players.P1.hand = handIds.slice(0,5).map(id=>{ const c=makeCardInst(id,"P1"); c.zone=Z.HAND; return c; });
+
+  // Mana 2 each (use first hand cards if possible)
+  state.players.P1.mana = [];
+  state.players.P2.mana = [];
+  for(let i=0;i<2;i++){
+    const id = state.players.P1.hand[i]?.id || (pickByType("MONSTER")||"m_fallback_1");
+    const c = makeCardInst(id,"P1"); c.zone=Z.MANA; state.players.P1.mana.push(c);
+  }
+  for(let i=0;i<2;i++){
+    const id = pickByType("MONSTER")||"m_fallback_1";
+    const c = makeCardInst(id,"P2"); c.zone=Z.MANA; c.faceDown=true; state.players.P2.mana.push(c);
+  }
+
+  // One opponent monster + facedown support to confirm
+  const oppMon = pickByType("MONSTER") || "m_fallback_1";
+  const om = makeCardInst(oppMon, "P2"); om.zone=Z.MON; om.summonSick=false;
+  state.players.P2.monster[0] = om;
+
+  const oppSup = pickByType("SUPPORT") || pickByType("MAGIC") || "su_fallback_1";
+  const os = makeCardInst(oppSup, "P2"); os.zone=Z.SUP; os.faceDown=true;
+  state.players.P2.support[0] = os;
+}
+
+  function setupDuelFromSelection(){
+    resetGame();
+    // Determine first player
+    if(flow.coinResult===1){
+      state.active = "P2";
+    }else{
+      state.active = "P1";
+    }
+
+    // Build heroes from pickIds + placement
+    const ids = flow.pickIds && flow.pickIds.length===4 ? flow.pickIds : flowExpandPickIds();
+    const frontIds = [];
+    const backIds  = [];
+    for(let i=0;i<ids.length;i++){
+      if(flow.frontIdx && flow.frontIdx.has(i)) frontIds.push(ids[i]);
+      else if(flow.backIdx && flow.backIdx.has(i)) backIds.push(ids[i]);
+    }
+    // Safety: ensure at least 1 each
+    if(frontIds.length===0 && backIds.length){ frontIds.push(backIds.shift()); }
+    if(backIds.length===0 && frontIds.length){ backIds.push(frontIds.pop()); }
+
+    // Place P1 heroes
+    state.players.P1.heroFront = frontIds.map(id=>{ const c=makeCardInst(id,"P1"); c.zone=Z.HERO; c.isFront=true; return c; });
+    state.players.P1.heroBack  = backIds.map(id=>{ const c=makeCardInst(id,"P1"); c.zone=Z.HERO; c.isFront=false; return c; });
+
+    // Opponent heroes (auto)
+    autoBuildOpponentHeroes();
+
+    // Setup other zones demo
+    setupDemoNonHeroZones();
+
+    log(`デュエル開始: 先攻=${state.active}`);
+    render();
+  }function autoBuildOpponentHeroes(){
     const heroes = getAllHeroes();
     let ids = heroes.slice(0,4).map(h=>h.id);
     if(ids.length<4){
